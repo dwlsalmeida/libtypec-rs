@@ -1,0 +1,336 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// SPDX-FileCopyrightText: © 2024 Google
+// Ported from libtypec (Rajaram Regupathy <rajaram.regupathy@gmail.com>)
+
+//! The UCSI backend
+
+use mockall_double::double;
+
+use std::io::Cursor;
+
+use crate::pd::PdPdo;
+use crate::ucsi::GetAlternateModesRecipient;
+use crate::ucsi::GetPdoSourceCapabilitiesType;
+use crate::ucsi::GetPdosSrcOrSink;
+use crate::ucsi::PdMessage;
+use crate::ucsi::PdMessageRecipient;
+use crate::ucsi::PdMessageResponseType;
+use crate::ucsi::UcsiAlternateMode;
+use crate::ucsi::UcsiCableProperty;
+use crate::ucsi::UcsiCapability;
+use crate::ucsi::UcsiCommand;
+use crate::ucsi::UcsiConnectorCapability;
+use crate::ucsi::UcsiConnectorStatus;
+use crate::BcdWrapper;
+use crate::BitReader;
+use crate::Error;
+use crate::FromBytes;
+use crate::OsBackend;
+use crate::Result;
+use crate::ToBytes;
+
+/// A mere convenience to check if a response is null.
+trait NullResponse {
+    fn is_null(&self) -> bool;
+}
+
+impl NullResponse for Vec<u8> {
+    /// A convenience method to identify a null response.
+    fn is_null(&self) -> bool {
+        self.iter().all(|byte| *byte == 0)
+    }
+}
+
+mod driver {
+    #[cfg(test)]
+    use mockall::{automock, predicate::*};
+
+    use std::fs::File;
+    use std::io::Read;
+    use std::io::Seek;
+    use std::io::Write;
+    use std::os::fd::AsFd;
+
+    use crate::Error;
+    use crate::Result;
+
+    pub struct Driver {
+        /// The file descriptor used to send commands.
+        command_fd: File,
+        /// The file descriptor used to receive responses.
+        response_fd: File,
+    }
+
+    #[cfg_attr(test, automock)]
+    impl Driver {
+        pub fn new() -> Result<Self> {
+            let command_fd = std::fs::OpenOptions::new()
+                .write(true)
+                .open("/sys/kernel/debug/usb/ucsi/USBC000:00/command")?;
+
+            let mut response_fd = std::fs::OpenOptions::new()
+                .read(true)
+                .open("/sys/kernel/debug/usb/ucsi/USBC000:00/response")?;
+
+            response_fd.seek(std::io::SeekFrom::Start(0))?;
+
+            Ok(Self {
+                command_fd,
+                response_fd,
+            })
+        }
+
+        pub fn submit_command(&mut self, command: &[u8]) -> Result<usize> {
+            Ok(self.command_fd.write(&command)?)
+        }
+
+        pub fn wait_response(&mut self) -> Result<Vec<u8>> {
+            let poll_fd =
+                nix::poll::PollFd::new(self.response_fd.as_fd(), nix::poll::PollFlags::POLLIN);
+            let timeout = nix::poll::PollTimeout::from(10000u16);
+
+            match nix::poll::poll(&mut [poll_fd], timeout) {
+                Ok(0) => {
+                    // Timeout
+                    Err(Error::TimeoutError {
+                        #[cfg(feature = "backtrace")]
+                        backtrace: std::backtrace::Backtrace::capture(),
+                    })
+                }
+                Ok(_) => {
+                    let mut response = Vec::new();
+                    self.response_fd.read_to_end(&mut response)?;
+                    self.response_fd.seek(std::io::SeekFrom::Start(0))?;
+                    Ok(response)
+                }
+                Err(errno) => Err(errno.into()),
+            }
+        }
+    }
+}
+
+#[double]
+use driver::Driver;
+
+pub struct LinuxUcsiBackend {
+    /// The driver abstraction.
+    driver: Driver,
+}
+
+impl LinuxUcsiBackend {
+    /// Instantiates a new UCSI backend for Linux.
+    pub fn new() -> Result<Self> {
+        let driver = Driver::new()?;
+        Ok(Self { driver })
+    }
+
+    /// Parses the response from the Linux UCSI driver. It currently replies
+    /// with two u64s because it conforms to UCSI 1.2.
+    fn parse_response(response: Vec<u8>) -> Result<Vec<u8>> {
+        let response = std::str::from_utf8(&response)?;
+        // Remove the "0x" prefix and \n at the end
+        let hex_string = &response[2..response.len() - 1];
+        let (first, second) = hex_string.split_at(16);
+
+        let high = u64::from_str_radix(first, 16).unwrap();
+        let low = u64::from_str_radix(second, 16).unwrap();
+
+        let mut result = Vec::new();
+        result.extend(&low.to_ne_bytes());
+        result.extend(&high.to_ne_bytes());
+
+        Ok(result)
+    }
+
+    /// Builds a u64 value from a UCSI command.
+    fn build_command_value(command: &UcsiCommand) -> Result<u64> {
+        let mut buf = [0; 8];
+        let mut bw = crate::BitWriter::new(Cursor::new(&mut buf[..]));
+        let mut val = 0u64;
+
+        command.to_bytes(&mut bw)?;
+        for byte in buf.iter().rev() {
+            val = (val << 8) | u64::from(*byte);
+        }
+
+        Ok(val)
+    }
+
+    /// Converts a u64 value to a C string.
+    fn stringify_command_val(val: u64) -> Result<Vec<u8>> {
+        let c_string = std::ffi::CString::new(val.to_string())?;
+        Ok(c_string.into_bytes_with_nul())
+    }
+
+    /// Execute the command, returning a string of bytes as a result.
+    pub fn execute(&mut self, command: UcsiCommand) -> Result<Vec<u8>> {
+        let cmd_val = Self::build_command_value(&command)?;
+        let cmd_str = Self::stringify_command_val(cmd_val)?;
+
+        self.driver.submit_command(&cmd_str)?;
+
+        let response = self.driver.wait_response()?;
+        Self::parse_response(response)
+    }
+}
+
+impl OsBackend for LinuxUcsiBackend {
+    fn capabilities(&mut self) -> Result<UcsiCapability> {
+        let cmd = UcsiCommand::GetCapability;
+        let response = self.execute(cmd)?;
+        let mut bitreader = BitReader::new(Cursor::new(&response[..]));
+        UcsiCapability::from_bytes(&mut bitreader)
+    }
+
+    fn connector_capabilties(&mut self, connector_nr: usize) -> Result<UcsiConnectorCapability> {
+        let cmd = UcsiCommand::GetConnectorCapability { connector_nr };
+        let response = self.execute(cmd)?;
+        let mut bitreader = BitReader::new(Cursor::new(&response[..]));
+        UcsiConnectorCapability::from_bytes(&mut bitreader)
+    }
+
+    fn alternate_modes(
+        &mut self,
+        recipient: GetAlternateModesRecipient,
+        connector_nr: usize,
+    ) -> Result<Vec<UcsiAlternateMode>> {
+        let mut alternate_modes = vec![];
+
+        loop {
+            let cmd = UcsiCommand::GetAlternateModes {
+                recipient,
+                connector_nr,
+            };
+
+            let response = self.execute(cmd)?;
+            if response.is_null() {
+                break;
+            }
+
+            let mut bitreader = BitReader::new(Cursor::new(&response[..]));
+            alternate_modes.push(UcsiAlternateMode::from_bytes(&mut bitreader)?);
+        }
+
+        Ok(alternate_modes)
+    }
+
+    fn cable_properties(&mut self, connector_nr: usize) -> Result<UcsiCableProperty> {
+        let cmd = UcsiCommand::GetCableProperty { connector_nr };
+        let response = self.execute(cmd)?;
+        let mut bitreader = BitReader::new(Cursor::new(&response[..]));
+        UcsiCableProperty::from_bytes(&mut bitreader)
+    }
+
+    fn connector_status(&mut self, _: usize) -> Result<UcsiConnectorStatus> {
+        Err(Error::NotSupported {
+            #[cfg(feature = "backtrace")]
+            backtrace: std::backtrace::Backtrace::capture(),
+        })
+    }
+
+    fn pd_message(
+        &mut self,
+        _: usize,
+        _: PdMessageRecipient,
+        _: PdMessageResponseType,
+    ) -> Result<PdMessage> {
+        Err(Error::NotSupported {
+            #[cfg(feature = "backtrace")]
+            backtrace: std::backtrace::Backtrace::capture(),
+        })
+    }
+
+    fn pdos(
+        &mut self,
+        connector_nr: usize,
+        partner_pdo: bool,
+        pdo_offset: u32,
+        nr_pdos: usize,
+        src_or_sink_pdos: GetPdosSrcOrSink,
+        pdo_type: GetPdoSourceCapabilitiesType,
+        revision: BcdWrapper,
+    ) -> Result<Vec<crate::pd::PdPdo>> {
+        let mut pdos = vec![];
+        let mut nr_pdos_returned = 0;
+        loop {
+            if nr_pdos > 0 && nr_pdos_returned == nr_pdos {
+                break;
+            }
+
+            let cmd = UcsiCommand::GetPdos {
+                connector_nr,
+                partner_pdo,
+                pdo_offset,
+                nr_pdos,
+                src_or_sink_pdos,
+                source_capabilities_type: pdo_type,
+            };
+
+            let response = self.execute(cmd)?;
+            if response.is_null() {
+                break;
+            }
+
+            let mut bitreader = BitReader::new(Cursor::new(&response[..]));
+            let pdo = PdPdo::from_bytes(&mut bitreader, revision)?;
+            pdos.push(pdo);
+
+            nr_pdos_returned += 1;
+        }
+
+        Ok(pdos)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use mockall::predicate::eq;
+
+    use super::*;
+
+    impl From<Driver> for LinuxUcsiBackend {
+        fn from(mock: Driver) -> Self {
+            Self { driver: mock }
+        }
+    }
+
+    #[test]
+    fn test_stringify_command_val() {
+        let val = 12345u64;
+        let result = LinuxUcsiBackend::stringify_command_val(val).unwrap();
+        let expected = format!("{}{}", val, "\0").into_bytes();
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_build_command_value_get_connector_capability() {
+        let command = UcsiCommand::GetConnectorCapability { connector_nr: 0 };
+        let result = LinuxUcsiBackend::build_command_value(&command).unwrap();
+        let expected = 65543u64;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    // Do we write the right command to the command file? Can we parse the response?
+    fn test_execute_get_capability() {
+        let mut mock = Driver::default();
+
+        mock.expect_submit_command()
+            .with(eq(LinuxUcsiBackend::stringify_command_val(6).unwrap()))
+            .times(1)
+            .returning(|_| Ok(0));
+
+        // TODO: response
+        mock.expect_wait_response()
+            .times(1)
+            .returning(|| Ok(vec![]));
+
+        let mut backend = LinuxUcsiBackend::from(mock);
+        let response = backend.execute(UcsiCommand::GetCapability).unwrap();
+
+        let mut br = BitReader::new(Cursor::new(&response[..]));
+        UcsiCapability::from_bytes(&mut br).expect("Failed to parse response");
+    }
+}
