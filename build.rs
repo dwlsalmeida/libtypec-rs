@@ -57,7 +57,7 @@ fn generate_pkg_config(out_dir: &String, target_dir: &std::path::Path) {
     write!(f, "Name: libtypec_rs\n").unwrap();
     write!(
         f,
-        "Description: USB Type-C Port Controller Interface (UCSI) functionality\n"
+        "Description: USB Type-C Connector System software Interface (UCSI) tools"
     )
     .unwrap();
     write!(f, "Version: 1.0.0\n").unwrap();

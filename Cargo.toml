@@ -1,6 +1,6 @@
 [package]
 name = "libtypec-rs"
-authors = ["Rajaram Regupathy"]
+authors = ["Rajaram Regupathy", "Daniel Almeida"]
 version = "0.1.0"
 edition = "2021"
 
@@ -49,7 +49,7 @@ maintainer = "Rajaram Regupathy <rajaram.regupathy@gmail.com>"
 license-file = ["LICENSE"]
 # Dependencies are handled by Cargo
 depends = ""
-extended-description = "USB Type-C Port Controller Interface (UCSI) functionality."
+extended-description = "USB Type-C Connector System software Interface (UCSI) tools"
 section = "libs"
 priority = "optional"
 assets = [

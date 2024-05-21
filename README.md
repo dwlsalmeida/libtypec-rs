@@ -17,14 +17,12 @@ Compiling `libtypec-rs` requires the `nightly` toolchain to expand macros before
 when compiling with the optional `backtrace` feature for debugging purposes.
 
 ## Backends
-`sysfs` - extract information using sysfs.
-
-`linux_ucsi` - extract information using the Linux UCSI driver debugfs interface.
+* `sysfs` - extract information using sysfs.
+* `linux_ucsi` - extract information using the Linux UCSI driver debugfs interface.
 
 ## Features
-`c_api` - generate a C header file (.h) to be used when linking against `libtypec-rs.so`.
-
-`backtrace` - generate a backtrace on errors for debugging purposes. Requires nightly.
+* `c_api` - generate a C header file (.h) to be used when linking against `libtypec-rs.so`.
+* `backtrace` - generate a backtrace on errors for debugging purposes. Requires nightly.
 
 ## Binaries
 `lstypec` - list the USB-C information in the system.
