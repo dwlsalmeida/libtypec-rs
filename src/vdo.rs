@@ -238,11 +238,11 @@ pub enum Pd3p2DfpVdoVersion {
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq, Eq, N, Printf, Snprintf)]
 pub enum Pd3p2DfpVdoHostCapability {
-    /// [USB 2.0] Host Capable
+    /// [USB 2] Host Capable
     Usb20 = 0,
-    /// [USB 3.2] Host Capable
+    /// [USB 3] Host Capable
     Usb32 = 1,
-    /// [USB4] Host Capable
+    /// [USB 4] Host Capable
     Usb4 = 2,
 }
 
