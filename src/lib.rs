@@ -326,14 +326,13 @@ impl From<Error> for CError {
     }
 }
 
-#[cfg(target_os = "linux")]
-fn is_chrome_os() -> Result<bool> {
-    let uname = nix::sys::utsname::uname()?;
-    Ok(uname.sysname().to_string_lossy().contains("chrome"))
-}
-
-#[cfg(not(target_os = "linux"))]
 fn is_chrome_os() -> bool {
+    #[cfg(target_os = "linux")]
+    match nix::sys::utsname::uname() {
+        Ok(uname) => uname.sysname().to_string_lossy().contains("chrome"),
+        Err(_) => false,
+    }
+    #[cfg(not(target_os = "linux"))]
     false
 }
 

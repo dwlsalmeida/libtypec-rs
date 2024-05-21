@@ -651,8 +651,7 @@ impl OsBackend for SysfsBackend {
             }
         }
 
-        #[cfg(target_os = "linux")]
-        if crate::is_chrome_os()? {
+        if crate::is_chrome_os() {
             let port_content = format!(
                 "{}/port{}-partner/{}",
                 path_str, connector_nr, "usb_power_delivery_revision"
