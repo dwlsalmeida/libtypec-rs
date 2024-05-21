@@ -1136,7 +1136,7 @@ mod tests {
             .expect_read_opr()
             .returning(|| Ok(ConnectorCapabilityOperationMode::Drp));
 
-        if crate::is_chrome_os().unwrap() {
+        if crate::is_chrome_os() {
             let path0_pd = format!("{}/usb_power_delivery_revision", path0);
             mock_reader
                 .expect_set_path()
@@ -1160,7 +1160,7 @@ mod tests {
             ..Default::default()
         };
 
-        if crate::is_chrome_os().unwrap() {
+        if crate::is_chrome_os() {
             expected.partner_pd_revision = 0x300;
         }
 
