@@ -378,15 +378,19 @@ pub struct Pd3p2IdHeaderVdo {
     pub usb_host_capability: bool,
     /// USB Communications Capable as a USB Device
     pub usb_device_capability: bool,
-    /// SOP Product Type (UFP)
+    /// Indicates the type of Product when in UFP Data Role, whether a VDO will
+    /// be returned and if so the type of VDO to be returned.
     pub sop_product_type_ufp: Pd3p2SopUfpProductType,
-    /// Modal Operation Supported
+    /// Indicates whether or not the Product (either a Cable Plug or a device
+    /// that can operate in the UFP role) is capable of supporting Modes.
     pub modal_operation_supported: bool,
-    /// SOP - Product Type (DFP)
+    /// Indicates the type of Product when in DFP Data Role, whether a VDO will
+    /// be returned and if so the type of VDO to be returned.
     pub sop_product_type_dfp: Pd3p2SopDfpProductType,
-    /// Connector Type
+    /// A value identifying it as either a USB Type-C® receptacle or a USB
+    /// Type-C® plug.
     pub connector_type: Pd3p2IdHeaderVdoConnectorType,
-    /// USB Vendor ID
+    /// Value of the Vendor ID assigned to them by USB-IF.
     pub usb_vendor_id: u32,
 }
 
