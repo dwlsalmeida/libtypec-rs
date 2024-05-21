@@ -18,6 +18,7 @@ use crate::BcdWrapper;
 use crate::BitReader;
 use crate::Error;
 use crate::FromBytes;
+use crate::MilliOhm;
 use crate::Result;
 
 #[repr(C)]
@@ -49,19 +50,19 @@ pub enum Pd3p2ChargeThroughSupport {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pd3p2VpdVdo {
     /// HW Version 0000b…1111b assigned by the VID owner
-    pub hw_version: u32,
+    pub hw_version: u8,
     /// Firmware Version 0000b…1111b assigned by the VID owner
-    pub firmware_version: u32,
+    pub firmware_version: u8,
     /// Version Number of the VDO (not this specification Version)
-    pub vdo_version: u32,
+    pub vdo_version: u8,
     /// Maximum VPD VBUS Voltage
     pub max_vbus_voltage: Pd3p2MaxVbusVoltage,
     /// Charge Through Current Support
     pub charge_through_current_support: bool,
     /// VBUS Impedance
-    pub vbus_impedance: u32,
+    pub vbus_impedance: MilliOhm,
     /// Ground Impedance
-    pub ground_impedance: u32,
+    pub ground_impedance: MilliOhm,
     /// Charge Through Support
     pub charge_through_support: Pd3p2ChargeThroughSupport,
 }
@@ -80,8 +81,8 @@ impl FromBytes for Pd3p2VpdVdo {
                 backtrace: Backtrace::capture(),
             })?;
         let charge_through_current_support = bit_reader.read_bit()?;
-        let vbus_impedance = bit_reader.read(6)?;
-        let ground_impedance = bit_reader.read(6)?;
+        let vbus_impedance = bit_reader.read::<u32>(6)?.into();
+        let ground_impedance = bit_reader.read::<u32>(6)?.into();
         let charge_through_support = bit_reader.read_bit()?;
         let charge_through_support = Pd3p2ChargeThroughSupport::n(charge_through_support)
             .ok_or_else(|| Error::ParseError {

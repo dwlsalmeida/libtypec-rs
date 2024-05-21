@@ -386,3 +386,20 @@ impl From<u32> for Milliwatt {
         Milliwatt(val)
     }
 }
+
+#[repr(transparent)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+/// A wrapper that can pretty-print the underlying milliohm value.
+pub struct MilliOhm(pub u32);
+
+impl std::fmt::Debug for MilliOhm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}mΩ", self.0)
+    }
+}
+
+impl From<u32> for MilliOhm {
+    fn from(val: u32) -> Self {
+        Self(val)
+    }
+}
