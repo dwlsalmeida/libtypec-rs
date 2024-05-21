@@ -9,11 +9,11 @@ use std::str::FromStr;
 use crate::backends;
 use crate::pd::PdPdo;
 use crate::ucsi::GetAlternateModesRecipient;
-use crate::ucsi::GetPdoSourceCapabilitiesType;
-use crate::ucsi::GetPdosSrcOrSink;
 use crate::ucsi::PdMessage;
 use crate::ucsi::PdMessageRecipient;
 use crate::ucsi::PdMessageResponseType;
+use crate::ucsi::PdoSourceCapabilitiesType;
+use crate::ucsi::PdoType;
 use crate::ucsi::UcsiAlternateMode;
 use crate::ucsi::UcsiCableProperty;
 use crate::ucsi::UcsiCapability;
@@ -143,7 +143,7 @@ impl TypecRs {
     /// `partner_pdo` Whether to retrieve partner PDOs
     /// `pdo_offset` Index from which PDO needs to be retrieved
     /// `nr_pdos` Represents number of PDOs to be retrieved
-    /// `src_or_sink_pdos` Whether to retrieve source or sink PDOs
+    /// `pdo_type` Whether to retrieve source or sink PDOs
     /// `source_capabilities_type` Represents the type of Source PDOs requested.
     /// `revision` Indicates the USB PD revision used to interpret the read
     /// data.
@@ -153,8 +153,8 @@ impl TypecRs {
         partner_pdo: bool,
         pdo_offset: u32,
         nr_pdos: usize,
-        src_or_sink_pdos: GetPdosSrcOrSink,
-        source_capabilities_type: GetPdoSourceCapabilitiesType,
+        pdo_type: PdoType,
+        source_capabilities_type: PdoSourceCapabilitiesType,
         revision: BcdWrapper,
     ) -> Result<Vec<PdPdo>> {
         self.os_backend.pdos(
@@ -162,7 +162,7 @@ impl TypecRs {
             partner_pdo,
             pdo_offset,
             nr_pdos,
-            src_or_sink_pdos,
+            pdo_type,
             source_capabilities_type,
             revision,
         )
@@ -402,8 +402,8 @@ impl TypecRs {
         partner_pdo: bool,
         pdo_offset: u32,
         nr_pdos: usize,
-        src_or_sink_pdos: GetPdosSrcOrSink,
-        source_capabilities_type: GetPdoSourceCapabilitiesType,
+        src_or_sink_pdos: PdoType,
+        source_capabilities_type: PdoSourceCapabilitiesType,
         revision: BcdWrapper,
         out_pdos: *mut *mut PdPdo,
         out_npdos: &mut usize,

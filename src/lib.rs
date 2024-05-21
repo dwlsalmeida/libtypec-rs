@@ -22,11 +22,11 @@ use std::io::Cursor;
 use bitstream_io::LittleEndian;
 use pd::PdPdo;
 use ucsi::GetAlternateModesRecipient;
-use ucsi::GetPdoSourceCapabilitiesType;
-use ucsi::GetPdosSrcOrSink;
 use ucsi::PdMessage;
 use ucsi::PdMessageRecipient;
 use ucsi::PdMessageResponseType;
+use ucsi::PdoSourceCapabilitiesType;
+use ucsi::PdoType;
 use ucsi::UcsiAlternateMode;
 use ucsi::UcsiCableProperty;
 use ucsi::UcsiCapability;
@@ -73,8 +73,8 @@ pub trait OsBackend {
         partner_pdo: bool,
         pdo_offset: u32,
         nr_pdos: usize,
-        src_or_sink_pdos: GetPdosSrcOrSink,
-        pdo_type: GetPdoSourceCapabilitiesType,
+        pdo_type: PdoType,
+        source_capabilities_type: PdoSourceCapabilitiesType,
         revision: BcdWrapper,
     ) -> Result<Vec<PdPdo>>;
 }

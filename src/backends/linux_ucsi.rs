@@ -10,11 +10,11 @@ use std::io::Cursor;
 
 use crate::pd::PdPdo;
 use crate::ucsi::GetAlternateModesRecipient;
-use crate::ucsi::GetPdoSourceCapabilitiesType;
-use crate::ucsi::GetPdosSrcOrSink;
 use crate::ucsi::PdMessage;
 use crate::ucsi::PdMessageRecipient;
 use crate::ucsi::PdMessageResponseType;
+use crate::ucsi::PdoSourceCapabilitiesType;
+use crate::ucsi::PdoType;
 use crate::ucsi::UcsiAlternateMode;
 use crate::ucsi::UcsiCableProperty;
 use crate::ucsi::UcsiCapability;
@@ -246,8 +246,8 @@ impl OsBackend for LinuxUcsiBackend {
         partner_pdo: bool,
         pdo_offset: u32,
         nr_pdos: usize,
-        src_or_sink_pdos: GetPdosSrcOrSink,
-        pdo_type: GetPdoSourceCapabilitiesType,
+        pdo_type: PdoType,
+        source_capabilities_type: PdoSourceCapabilitiesType,
         revision: BcdWrapper,
     ) -> Result<Vec<crate::pd::PdPdo>> {
         let mut pdos = vec![];
@@ -262,8 +262,8 @@ impl OsBackend for LinuxUcsiBackend {
                 partner_pdo,
                 pdo_offset,
                 nr_pdos,
-                src_or_sink_pdos,
-                source_capabilities_type: pdo_type,
+                pdo_type,
+                source_capabilities_type,
             };
 
             let response = self.execute(cmd)?;

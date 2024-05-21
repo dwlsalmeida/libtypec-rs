@@ -9,10 +9,10 @@ use argh::FromArgs;
 use libtypec_rs::typec::OsBackends;
 use libtypec_rs::typec::TypecRs;
 use libtypec_rs::ucsi::GetAlternateModesRecipient;
-use libtypec_rs::ucsi::GetPdoSourceCapabilitiesType;
-use libtypec_rs::ucsi::GetPdosSrcOrSink;
 use libtypec_rs::ucsi::PdMessageRecipient;
 use libtypec_rs::ucsi::PdMessageResponseType;
+use libtypec_rs::ucsi::PdoSourceCapabilitiesType;
+use libtypec_rs::ucsi::PdoType;
 use libtypec_rs::Error;
 
 #[derive(FromArgs)]
@@ -62,8 +62,8 @@ fn main() {
                 false,
                 0,
                 0,
-                GetPdosSrcOrSink::Source,
-                GetPdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
+                PdoType::Source,
+                PdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
                 capabilities.pd_version,
             )
             .expect("Failed to get Source PDOs");
@@ -78,8 +78,8 @@ fn main() {
                 false,
                 0,
                 0,
-                GetPdosSrcOrSink::Sink,
-                GetPdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
+                PdoType::Sink,
+                PdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
                 capabilities.pd_version,
             )
             .expect("Failed to get Sink PDOs");
@@ -163,8 +163,8 @@ fn main() {
             true,
             0,
             0,
-            GetPdosSrcOrSink::Source,
-            GetPdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
+            PdoType::Source,
+            PdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
             capabilities.pd_version,
         ) {
             Ok(conn_pdo) => {
@@ -181,8 +181,8 @@ fn main() {
             true,
             0,
             0,
-            GetPdosSrcOrSink::Sink,
-            GetPdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
+            PdoType::Sink,
+            PdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
             capabilities.pd_version,
         ) {
             Ok(conn_pdo) => {

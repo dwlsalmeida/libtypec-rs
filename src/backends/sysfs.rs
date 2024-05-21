@@ -13,11 +13,11 @@ use std::path::PathBuf;
 use crate::pd::PdPdo;
 use crate::ucsi::ConnectorCapabilityOperationMode;
 use crate::ucsi::GetAlternateModesRecipient;
-use crate::ucsi::GetPdoSourceCapabilitiesType;
-use crate::ucsi::GetPdosSrcOrSink;
 use crate::ucsi::PdMessage;
 use crate::ucsi::PdMessageRecipient;
 use crate::ucsi::PdMessageResponseType;
+use crate::ucsi::PdoSourceCapabilitiesType;
+use crate::ucsi::PdoType;
 use crate::ucsi::UcsiAlternateMode;
 use crate::ucsi::UcsiCableProperty;
 use crate::ucsi::UcsiCapability;
@@ -70,8 +70,8 @@ pub mod sysfs_reader {
     use crate::ucsi::CablePropertyPlugEndType;
     use crate::ucsi::CablePropertyType;
     use crate::ucsi::ConnectorCapabilityOperationMode;
-    use crate::ucsi::GetPdosSrcOrSink;
     use crate::ucsi::PdMessageRecipient;
+    use crate::ucsi::PdoType;
     use crate::vdo::Pd3p2CertStatVdo;
     use crate::vdo::Pd3p2IdHeaderVdo;
     use crate::vdo::Pd3p2ProductTypeVdo;
@@ -245,10 +245,10 @@ pub mod sysfs_reader {
         pub fn read_fixed_supply_pdo(
             &mut self,
             path: &Path,
-            src_or_sink: GetPdosSrcOrSink,
+            src_or_sink: PdoType,
         ) -> Result<Pd3p2FixedSupplyPdo> {
             match src_or_sink {
-                GetPdosSrcOrSink::Source => {
+                PdoType::Source => {
                     self.set_path(&path.join("dual_role_power").to_string_lossy())?;
                     let dual_role_power = self.read_bit()?;
                     self.set_path(&path.join("higher_capability").to_string_lossy())?;
@@ -284,7 +284,7 @@ pub mod sysfs_reader {
                         operational_current,
                     })
                 }
-                GetPdosSrcOrSink::Sink => {
+                PdoType::Sink => {
                     self.set_path(&path.join("dual_role_power").to_string_lossy())?;
                     let dual_role_power = self.read_bit()?;
                     self.set_path(&path.join("higher_capability").to_string_lossy())?;
@@ -326,18 +326,18 @@ pub mod sysfs_reader {
         pub fn read_programmable_supply_pdo(
             &mut self,
             path: &Path,
-            src_or_sink: GetPdosSrcOrSink,
+            src_or_sink: PdoType,
         ) -> Result<Pd3p2SprProgrammableSupplyPdo> {
             self.set_path(&path.join("maximum_voltage").to_string_lossy())?;
             let max_voltage = (self.read_u32()? / 50).into();
             self.set_path(&path.join("minimum_voltage").to_string_lossy())?;
             let min_voltage = (self.read_u32()? / 50).into();
             let max_current = (match src_or_sink {
-                GetPdosSrcOrSink::Source => {
+                PdoType::Source => {
                     self.set_path(&path.join("maximum_current").to_string_lossy())?;
                     self.read_u32()?
                 }
-                GetPdosSrcOrSink::Sink => {
+                PdoType::Sink => {
                     self.set_path(&path.join("operational_current").to_string_lossy())?;
                     self.read_u32()?
                 }
@@ -354,18 +354,18 @@ pub mod sysfs_reader {
         pub fn read_battery_supply_pdo(
             &mut self,
             path: &Path,
-            src_or_sink: GetPdosSrcOrSink,
+            src_or_sink: PdoType,
         ) -> Result<Pd3p2BatterySupplyPdo> {
             self.set_path(&path.join("maximum_voltage").to_string_lossy())?;
             let max_voltage = (self.read_u32()? / 50).into();
             self.set_path(&path.join("minimum_voltage").to_string_lossy())?;
             let min_voltage = (self.read_u32()? / 50).into();
             let operational_power = (match src_or_sink {
-                GetPdosSrcOrSink::Source => {
+                PdoType::Source => {
                     self.set_path(&path.join("maximum_power").to_string_lossy())?;
                     self.read_u32()?
                 }
-                GetPdosSrcOrSink::Sink => {
+                PdoType::Sink => {
                     self.set_path(&path.join("operational_power").to_string_lossy())?;
                     self.read_u32()?
                 }
@@ -382,7 +382,7 @@ pub mod sysfs_reader {
         pub fn read_variable_supply_pdo(
             &mut self,
             path: &Path,
-            _src_or_sink: GetPdosSrcOrSink,
+            _src_or_sink: PdoType,
         ) -> Result<Pd3p2VariableSupplyPdo> {
             self.set_path(&path.join("maximum_voltage").to_string_lossy())?;
             let max_voltage = (self.read_u32()? / 100).into();
@@ -814,21 +814,21 @@ impl OsBackend for SysfsBackend {
         partner_pdo: bool,
         _pdo_offset: u32,
         _nr_pdos: usize,
-        src_or_sink_pdos: GetPdosSrcOrSink,
-        _pdo_type: GetPdoSourceCapabilitiesType,
+        pdo_type: PdoType,
+        _source_capabilities_type: PdoSourceCapabilitiesType,
         _revision: BcdWrapper,
     ) -> Result<Vec<crate::pd::PdPdo>> {
         let mut pdos = Vec::new();
 
         let path_str = if partner_pdo {
-            match src_or_sink_pdos {
-                GetPdosSrcOrSink::Source => {
+            match pdo_type {
+                PdoType::Source => {
                     format!(
                         "{}/port{}-partner/usb_power_delivery/source-capabilities",
                         SYSFS_TYPEC_PATH, connector_nr
                     )
                 }
-                GetPdosSrcOrSink::Sink => {
+                PdoType::Sink => {
                     format!(
                         "{}/port{}-partner/usb_power_delivery/sink-capabilities",
                         SYSFS_TYPEC_PATH, connector_nr
@@ -836,14 +836,14 @@ impl OsBackend for SysfsBackend {
                 }
             }
         } else {
-            match src_or_sink_pdos {
-                GetPdosSrcOrSink::Source => {
+            match pdo_type {
+                PdoType::Source => {
                     format!(
                         "{}/port{}/usb_power_delivery/source-capabilities",
                         SYSFS_TYPEC_PATH, connector_nr
                     )
                 }
-                GetPdosSrcOrSink::Sink => {
+                PdoType::Sink => {
                     format!(
                         "{}/port{}/usb_power_delivery/sink-capabilities",
                         SYSFS_TYPEC_PATH, connector_nr
@@ -861,24 +861,19 @@ impl OsBackend for SysfsBackend {
             let port_path = Path::new(&port_path);
 
             let pdo = if entry_name.contains("fixed") {
-                PdPdo::Pd3p2FixedSupplyPdo(
-                    self.reader
-                        .read_fixed_supply_pdo(port_path, src_or_sink_pdos)?,
-                )
+                PdPdo::Pd3p2FixedSupplyPdo(self.reader.read_fixed_supply_pdo(port_path, pdo_type)?)
             } else if entry_name.contains("variable") {
                 PdPdo::Pd3p2VariableSupplyPdo(
-                    self.reader
-                        .read_variable_supply_pdo(port_path, src_or_sink_pdos)?,
+                    self.reader.read_variable_supply_pdo(port_path, pdo_type)?,
                 )
             } else if entry_name.contains("battery") {
                 PdPdo::Pd3p2BatterySupplyPdo(
-                    self.reader
-                        .read_battery_supply_pdo(port_path, src_or_sink_pdos)?,
+                    self.reader.read_battery_supply_pdo(port_path, pdo_type)?,
                 )
             } else if entry_name.contains("programmable") {
                 PdPdo::Pd3p2AugmentedPdo(
                     self.reader
-                        .read_programmable_supply_pdo(port_path, src_or_sink_pdos)?,
+                        .read_programmable_supply_pdo(port_path, pdo_type)?,
                 )
             } else {
                 continue;

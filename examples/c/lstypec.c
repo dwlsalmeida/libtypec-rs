@@ -58,8 +58,8 @@ int c_example_lstypec(unsigned int backend) {
 
     // Connector PDOs (Source)
     ret = libtypec_rs_get_pdos(
-        typec, connector_nr, false, 0, 0, GetPdosSrcOrSink_Source,
-        GetPdoSourceCapabilitiesType_CurrentSupportedSourceCapabilities,
+        typec, connector_nr, false, 0, 0, PdoType_Source,
+        PdoSourceCapabilitiesType_CurrentSupportedSourceCapabilities,
         capabilities.pd_version, &out_pdos, &out_npdos, &out_mem_sz);
     if (!ret) {
       assert(out_pdos);
@@ -79,8 +79,8 @@ int c_example_lstypec(unsigned int backend) {
 
     // Connector PDOs (Sink)
     ret = libtypec_rs_get_pdos(
-        typec, connector_nr, false, 0, 0, GetPdosSrcOrSink_Sink,
-        GetPdoSourceCapabilitiesType_CurrentSupportedSourceCapabilities,
+        typec, connector_nr, false, 0, 0, PdoType_Sink,
+        PdoSourceCapabilitiesType_CurrentSupportedSourceCapabilities,
         capabilities.pd_version, &out_pdos, &out_npdos, &out_mem_sz);
     if (!ret) {
       assert(out_pdos);
@@ -199,8 +199,8 @@ int c_example_lstypec(unsigned int backend) {
     out_npdos = 0;
     out_mem_sz = 0;
     ret = libtypec_rs_get_pdos(
-        typec, connector_nr, /*partner=*/true, 0, 0, GetPdosSrcOrSink_Source,
-        GetPdoSourceCapabilitiesType_CurrentSupportedSourceCapabilities,
+        typec, connector_nr, /*partner=*/true, 0, 0, PdoType_Source,
+        PdoSourceCapabilitiesType_CurrentSupportedSourceCapabilities,
         capabilities.pd_version, &out_pdos, &out_npdos, &out_mem_sz);
     if (!ret) {
       assert(out_pdos);
@@ -220,8 +220,8 @@ int c_example_lstypec(unsigned int backend) {
     out_npdos = 0;
     out_mem_sz = 0;
     ret = libtypec_rs_get_pdos(
-        typec, connector_nr, /*partner=*/true, 0, 0, GetPdosSrcOrSink_Sink,
-        GetPdoSourceCapabilitiesType_CurrentSupportedSourceCapabilities,
+        typec, connector_nr, /*partner=*/true, 0, 0, PdoType_Sink,
+        PdoSourceCapabilitiesType_CurrentSupportedSourceCapabilities,
         capabilities.pd_version, &out_pdos, &out_npdos, &out_mem_sz);
     if (!ret) {
       assert(out_pdos);

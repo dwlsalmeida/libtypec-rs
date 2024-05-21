@@ -35,14 +35,14 @@ pub enum GetAlternateModesRecipient {
 
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq, Printf, Snprintf, N, Copy)]
-pub enum GetPdosSrcOrSink {
+pub enum PdoType {
     Sink,
     Source,
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq, Printf, Snprintf, N, Copy)]
-pub enum GetPdoSourceCapabilitiesType {
+pub enum PdoSourceCapabilitiesType {
     CurrentSupportedSourceCapabilities,
     AdvertisedCapabilities,
     MaximumSupportedSourceCapabilities,
@@ -105,11 +105,10 @@ pub enum UcsiCommand {
         nr_pdos: usize,
         /// This field shall be set if the OPM wants to retrieve the Source PDOs
         /// otherwise it will retrieve the Sink PDOs.
-        src_or_sink_pdos: GetPdosSrcOrSink,
+        pdo_type: PdoType,
         /// The type of source capabilities requested, this field is only valid
-        /// if `partner` is false and `src_or_sink_pdo` is
-        /// `GetPdosSrcOrSink::Sink`.
-        source_capabilities_type: GetPdoSourceCapabilitiesType,
+        /// if `partner` is false and `pdo_type` is `PdoType::Sink`.
+        source_capabilities_type: PdoSourceCapabilitiesType,
     },
     /// This command is used to get the Cable properties on the connector
     /// identified by this command.
@@ -190,7 +189,7 @@ impl ToBytes for UcsiCommand {
                 partner_pdo,
                 pdo_offset,
                 nr_pdos,
-                src_or_sink_pdos,
+                pdo_type: src_or_sink_pdos,
                 source_capabilities_type: pdo_type,
             } => {
                 // Data length
