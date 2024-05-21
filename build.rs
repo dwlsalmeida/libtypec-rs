@@ -21,7 +21,7 @@ fn run_cbindgen(out_dir: &String, target_dir: &std::path::Path) {
 
     let header_path = std::path::Path::new(&out_dir).join("libtypec-rs.h");
     cbindgen::Builder::new()
-        .with_crate(&crate_dir)
+        .with_crate(crate_dir)
         .with_config(config)
         .with_language(cbindgen::Language::C)
         .with_parse_expand(&["libtypec-rs"])
@@ -36,7 +36,7 @@ fn run_cbindgen(out_dir: &String, target_dir: &std::path::Path) {
 fn build_c_examples(target_dir: &std::path::Path) {
     cc::Build::new()
         .file("examples/c/lstypec.c")
-        .include(&target_dir)
+        .include(target_dir)
         .compile("c_examples_lstypec");
 
     println!("cargo::rerun-if-changed=examples/c/lstypec.c");
@@ -49,20 +49,20 @@ fn generate_pkg_config(out_dir: &String, target_dir: &std::path::Path) {
     let dest_path = std::path::Path::new(&out_dir).join("libtypec_rs.pc");
     let mut f = std::fs::File::create(&dest_path).unwrap();
 
-    write!(f, "prefix=/usr\n").unwrap();
-    write!(f, "exec_prefix=${{prefix}}\n").unwrap();
-    write!(f, "libdir=${{exec_prefix}}/lib\n").unwrap();
-    write!(f, "includedir=${{prefix}}/include\n").unwrap();
-    write!(f, "\n").unwrap();
-    write!(f, "Name: libtypec_rs\n").unwrap();
-    write!(
+    writeln!(f, "prefix=/usr").unwrap();
+    writeln!(f, "exec_prefix=${{prefix}}").unwrap();
+    writeln!(f, "libdir=${{exec_prefix}}/lib").unwrap();
+    writeln!(f, "includedir=${{prefix}}/include").unwrap();
+    writeln!(f).unwrap();
+    writeln!(f, "Name: libtypec_rs").unwrap();
+    writeln!(
         f,
         "Description: USB Type-C Connector System software Interface (UCSI) tools"
     )
     .unwrap();
-    write!(f, "Version: 1.0.0\n").unwrap();
-    write!(f, "Libs: -L${{libdir}} -ltypec_rs\n").unwrap();
-    write!(f, "Cflags: -I${{includedir}}\n").unwrap();
+    writeln!(f, "Version: 1.0.0").unwrap();
+    writeln!(f, "Libs: -L${{libdir}} -ltypec_rs").unwrap();
+    writeln!(f, "Cflags: -I${{includedir}}").unwrap();
 
     std::fs::copy(&dest_path, target_dir.join("libtypec_rs.pc")).unwrap();
 }
