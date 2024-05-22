@@ -708,7 +708,7 @@ pub struct UcsiConnectorCapability {
     pub reverse_current_protection_support: bool,
     /// Partner’s major USB PD Revision from the Specification Revision field of
     /// the USB PD message Header.
-    pub partner_pd_revision: u32,
+    pub partner_pd_revision: u8,
 }
 
 impl FromBytes for UcsiConnectorCapability {
@@ -749,7 +749,7 @@ impl FromBytes for UcsiConnectorCapability {
                     backtrace: std::backtrace::Backtrace::capture(),
                 })?;
         let reverse_current_protection_support = reader.read_bit()?;
-        let partner_pd_revision = reader.read::<u32>(2)?;
+        let partner_pd_revision = reader.read::<u8>(2)?;
 
         Ok(Self {
             operation_mode,

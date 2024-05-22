@@ -144,7 +144,7 @@ pub mod sysfs_reader {
             }
         }
 
-        pub fn read_pd_revision(&mut self) -> Result<u32> {
+        pub fn read_pd_revision(&mut self) -> Result<u8> {
             let content = self.read_file()?;
             let mut chars = content.chars();
 
@@ -161,7 +161,7 @@ pub mod sysfs_reader {
                 "File is too short",
             ))?;
 
-            let rev = ((b0 as u32 - b'0' as u32) << 4) | (b2 as u32 - b'0' as u32);
+            let rev = ((b0 as u8 - b'0' as u8) << 4) | (b2 as u8 - b'0' as u8);
             Ok(rev)
         }
 
