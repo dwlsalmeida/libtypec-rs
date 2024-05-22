@@ -298,7 +298,7 @@ mod tests {
     fn test_stringify_command_val() {
         let val = 12345u64;
         let result = UcsiDebugfsBackend::stringify_command_val(val).unwrap();
-        let expected = format!("{}{}", val, "\0").into_bytes();
+        let expected = format!("{}\0", val).into_bytes();
 
         assert_eq!(result, expected);
     }
