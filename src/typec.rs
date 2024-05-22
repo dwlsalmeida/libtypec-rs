@@ -71,7 +71,7 @@ impl TypecRs {
     pub fn new(backend: OsBackends) -> Result<Self> {
         match backend {
             OsBackends::UcsiDebugfs => Ok(Self {
-                os_backend: Box::new(backends::linux_ucsi::LinuxUcsiBackend::new()?),
+                os_backend: Box::new(backends::ucsi_debugfs::UcsiDebugfsBackend::new()?),
             }),
             OsBackends::Sysfs => Ok(Self {
                 os_backend: Box::new(backends::sysfs::SysfsBackend::new()?),

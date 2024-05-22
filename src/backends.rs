@@ -5,6 +5,6 @@
 //! The OS specific backends
 
 #[cfg(target_os = "linux")]
-pub mod linux_ucsi;
-#[cfg(target_os = "linux")]
 pub mod sysfs;
+#[cfg(target_os = "linux")]
+pub mod ucsi_debugfs;

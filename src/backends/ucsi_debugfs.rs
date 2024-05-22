@@ -112,12 +112,12 @@ mod driver {
 #[double]
 use driver::Driver;
 
-pub struct LinuxUcsiBackend {
+pub struct UcsiDebugfsBackend {
     /// The driver abstraction.
     driver: Driver,
 }
 
-impl LinuxUcsiBackend {
+impl UcsiDebugfsBackend {
     /// Instantiates a new UCSI backend for Linux.
     pub fn new() -> Result<Self> {
         let driver = Driver::new()?;
@@ -174,7 +174,7 @@ impl LinuxUcsiBackend {
     }
 }
 
-impl OsBackend for LinuxUcsiBackend {
+impl OsBackend for UcsiDebugfsBackend {
     fn capabilities(&mut self) -> Result<UcsiCapability> {
         let cmd = UcsiCommand::GetCapability;
         let response = self.execute(cmd)?;
@@ -288,7 +288,7 @@ mod tests {
 
     use super::*;
 
-    impl From<Driver> for LinuxUcsiBackend {
+    impl From<Driver> for UcsiDebugfsBackend {
         fn from(mock: Driver) -> Self {
             Self { driver: mock }
         }
@@ -297,7 +297,7 @@ mod tests {
     #[test]
     fn test_stringify_command_val() {
         let val = 12345u64;
-        let result = LinuxUcsiBackend::stringify_command_val(val).unwrap();
+        let result = UcsiDebugfsBackend::stringify_command_val(val).unwrap();
         let expected = format!("{}{}", val, "\0").into_bytes();
 
         assert_eq!(result, expected);
@@ -306,7 +306,7 @@ mod tests {
     #[test]
     fn test_build_command_value_get_connector_capability() {
         let command = UcsiCommand::GetConnectorCapability { connector_nr: 0 };
-        let result = LinuxUcsiBackend::build_command_value(&command).unwrap();
+        let result = UcsiDebugfsBackend::build_command_value(&command).unwrap();
         let expected = 65543u64;
 
         assert_eq!(result, expected);
@@ -318,7 +318,7 @@ mod tests {
         let mut mock = Driver::default();
 
         mock.expect_submit_command()
-            .with(eq(LinuxUcsiBackend::stringify_command_val(6).unwrap()))
+            .with(eq(UcsiDebugfsBackend::stringify_command_val(6).unwrap()))
             .times(1)
             .returning(|_| Ok(0));
 
@@ -327,7 +327,7 @@ mod tests {
             .times(1)
             .returning(|| Ok(vec![]));
 
-        let mut backend = LinuxUcsiBackend::from(mock);
+        let mut backend = UcsiDebugfsBackend::from(mock);
         let response = backend.execute(UcsiCommand::GetCapability).unwrap();
 
         let mut br = BitReader::new(Cursor::new(&response[..]));
