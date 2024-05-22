@@ -119,12 +119,14 @@ pub mod sysfs_reader {
             // Sometimes we get simply "2"
             let low = chars.next().unwrap_or('0');
 
-            let high = high
-                .to_digit(10)
-                .ok_or(io::Error::new(io::ErrorKind::InvalidData, "Invalid digit"))?;
-            let low = low
-                .to_digit(10)
-                .ok_or(io::Error::new(io::ErrorKind::InvalidData, "Invalid digit"))?;
+            let high = high.to_digit(10).ok_or(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Invalid digit: {high}"),
+            ))?;
+            let low = low.to_digit(10).ok_or(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Invalid digit: {low}"),
+            ))?;
 
             let bcd = (high << 8) | low;
 
