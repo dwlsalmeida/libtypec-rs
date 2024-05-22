@@ -350,17 +350,11 @@ pub enum Pd3p2FastRoleSwap {
 #[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
 /// See USB PD 3.2 - Table 6.17 “Fixed Supply PDO – Sink”
 pub struct Pd3p2FixedSupplyPdo {
-    /// Dual-Role Power
     pub dual_role_power: bool,
-    /// Higher Capability
     pub higher_capability: bool,
-    /// Unconstrained Power
     pub unconstrained_power: bool,
-    /// USB Communications Capable
     pub usb_communications_capable: bool,
-    /// Dual-Role Data
     pub dual_role_data: bool,
-    /// Fast Role Swap required USB Type-C® Current
     pub fast_role_swap: Pd3p2FastRoleSwap,
     pub voltage: Millivolt,
     pub operational_current: Milliamp,
