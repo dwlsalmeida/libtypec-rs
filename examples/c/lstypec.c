@@ -48,7 +48,7 @@ int c_example_lstypec(unsigned int backend) {
     // Connector capabilities
     struct UcsiConnectorCapability connector;
     ret = libtypec_rs_get_conn_capabilities(typec, connector_nr, &connector);
-    if (ret != 0) {
+    if (ret < 0) {
       fprintf(stderr, "Failed to get connector %zu\n", connector_nr);
       return ret;
     }
