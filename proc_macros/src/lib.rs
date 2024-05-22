@@ -36,13 +36,34 @@ pub fn derive_snprintf(input: TokenStream) -> TokenStream {
             quote! {
                 impl #name {
                     #[no_mangle]
-                    pub extern "C" fn #snprintf_fn_name(&self, buffer: *mut u8, buflen: usize) -> usize {
-                        let s = format!("{:#?}", self);
+                    pub extern "C" fn #snprintf_fn_name(&self, buffer: *mut u8, buflen: usize) -> i32 {
+                        // If an encoding error occurs, a negative number is returned.
+                        let s = match std::ffi::CString::new(format!("{:#?}", self)) {
+                            Ok(s) => s,
+                            Err(_) => return -1,
+                        };
+
                         let bytes = s.as_bytes();
-                        let len = bytes.len().min(buflen);
-                        let slice = unsafe { std::slice::from_raw_parts_mut(buffer, len) };
-                        slice.copy_from_slice(&bytes[..len]);
-                        len
+                        let len = bytes.len();
+
+                        let written = len.min(buflen);
+                        let slice = unsafe { std::slice::from_raw_parts_mut(buffer, written) };
+
+                        // if there's space, the null will be copied from the CString directly
+                        slice.copy_from_slice(&bytes[..written]);
+
+                        // snprintf always null-terminates the buffer
+                        if len > buflen {
+                            slice[len] = 0;
+                        }
+
+                        // The number of characters that would have been written
+                        // if n had been sufficiently large, not counting the
+                        // terminating null character.
+                        //
+                        // When this returned value is non-negative and less
+                        // than n, the string has been completely written.
+                        (len - 1).try_into().unwrap()
                     }
                 }
             }
