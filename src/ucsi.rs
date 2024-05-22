@@ -399,9 +399,9 @@ pub struct ConnectorStatusChange {
 #[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
 /// This enum represents the Orientation.
 pub enum ConnectorOrientation {
-    /// The connection is in the direct orientation.
+    /// The connection is in the normal orientation.
     #[default]
-    Direct = 0,
+    Normal = 0,
     /// The connection is in the reverse orientation.
     Reverse = 1,
 }
