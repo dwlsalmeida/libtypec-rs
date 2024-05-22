@@ -163,7 +163,18 @@ pub mod sysfs_reader {
                 "File is too short",
             ))?;
 
-            let rev = ((b0 as u8 - b'0' as u8) << 4) | (b2 as u8 - b'0' as u8);
+            let b0_digit = b0.to_digit(10).ok_or(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Non-digit character found",
+            ))? as u8;
+
+            let b2_digit = b2.to_digit(10).ok_or(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Non-digit character found",
+            ))? as u8;
+
+            let rev = (b0_digit << 4) | b2_digit;
+
             Ok(rev)
         }
 
