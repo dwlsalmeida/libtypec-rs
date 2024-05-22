@@ -31,7 +31,7 @@ fn main() {
         let backend = if let Some(backend) = args.backend {
             backend as u32
         } else {
-            OsBackends::LinuxUcsi as u32
+            OsBackends::UcsiDebugfs as u32
         };
 
         c_example_lstypec(backend);

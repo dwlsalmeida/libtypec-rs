@@ -5,7 +5,8 @@
 // Run with:
 // cargo run --example c_example_lstypec --features c_api -- backend sysfs
 // Or:
-// cargo run --example c_example_lstypec --features c_api -- backend linux_ucsi
+// cargo run --example c_example_lstypec --features c_api -- backend
+// ucsi_debugfs
 //
 // This is an example of how to use the C API. It is similar in nature to
 // the lstypec Rust binary.

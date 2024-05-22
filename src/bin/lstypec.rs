@@ -34,7 +34,7 @@ fn main() {
         vec![backend]
     } else {
         // Try the backends in the order given by the array.
-        [OsBackends::Sysfs, OsBackends::LinuxUcsi].into()
+        [OsBackends::Sysfs, OsBackends::UcsiDebugfs].into()
     };
 
     let mut typec = backends

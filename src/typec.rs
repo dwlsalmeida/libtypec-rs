@@ -46,8 +46,8 @@ pub struct TypecRs {
 pub enum OsBackends {
     /// A sysfs backend.
     Sysfs,
-    /// A Linux UCSI backend.
-    LinuxUcsi,
+    /// A UCSI debugfs backend.
+    UcsiDebugfs,
 }
 
 impl FromStr for OsBackends {
@@ -56,7 +56,7 @@ impl FromStr for OsBackends {
     fn from_str(s: &str) -> Result<Self> {
         match s.to_lowercase().as_str() {
             "sysfs" => Ok(Self::Sysfs),
-            "linux_ucsi" => Ok(Self::LinuxUcsi),
+            "ucsi_debugfs" => Ok(Self::UcsiDebugfs),
             _ => Err(Error::NotSupported {
                 #[cfg(feature = "backtrace")]
                 backtrace: std::backtrace::Backtrace::capture(),
@@ -70,7 +70,7 @@ impl TypecRs {
     /// Initializes the library with the given `backend`.
     pub fn new(backend: OsBackends) -> Result<Self> {
         match backend {
-            OsBackends::LinuxUcsi => Ok(Self {
+            OsBackends::UcsiDebugfs => Ok(Self {
                 os_backend: Box::new(backends::linux_ucsi::LinuxUcsiBackend::new()?),
             }),
             OsBackends::Sysfs => Ok(Self {
