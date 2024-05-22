@@ -64,9 +64,9 @@ pub struct VdmHeader {
     // Whether this is a structured VDM.
     pub structured: bool,
     // The major version number of this VDM.
-    pub major: u32,
+    pub major: u8,
     // Them minor major version number of this VDM.
-    pub minor: u32,
+    pub minor: u8,
     /// For Enter Mode, Exit Mode and Attention commands:
     ///
     /// Index into the list of VDOs to identify the desired Mode
@@ -74,7 +74,7 @@ pub struct VdmHeader {
     /// For Exit Mode only: 0b111 to exit all Active Modes
     ///
     /// Zero otherwise.
-    pub object_position: u32,
+    pub object_position: u8,
     /// The command type.
     pub command_type: PdCommandType,
     /// The command.
