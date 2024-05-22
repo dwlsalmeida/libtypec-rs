@@ -291,9 +291,8 @@ pub struct Pd3p2SourceCapabilitiesExtended {
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq, Printf, Snprintf)]
 pub struct Pd3p2BatteryCapData {
-    /// Values 0..3 represent the fixed batteries while values 4..7 represent
-    /// the hot-swappable batteries.
-    pub batteries: [u32; 8],
+    pub batteries_fixed: [u32; 4],
+    pub batteries_hotswappable: [u32; 4],
 }
 
 #[repr(C)]
