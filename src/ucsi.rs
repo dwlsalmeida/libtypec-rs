@@ -424,8 +424,8 @@ pub enum PowerOperationMode {
     #[default]
     Reserved = 0,
     UsbDefaultOperation = 1,
-    Bc = 2,
-    Pd = 3,
+    BatteryCharging = 2,
+    PowerDelivery = 3,
     UsbTypeCCurrent1_5A = 4,
     UsbTypeCCurrent3A = 5,
     UsbTypeCCurrent5A = 6,
