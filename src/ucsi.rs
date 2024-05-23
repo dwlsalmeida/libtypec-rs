@@ -496,6 +496,14 @@ pub enum CablePropertyType {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
+pub enum CablePropertyDirectionality {
+    #[default]
+    Configurable = 0,
+    Fixed = 1,
+}
+
+#[repr(C)]
 #[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
 /// See UCSI Table 6-40: GET_CABLE_PROPERTY Data
 pub struct UcsiCableProperty {
@@ -505,12 +513,12 @@ pub struct UcsiCableProperty {
     pub speed_exponent: CablePropertySpeedExponent,
     /// This field defines the mantissa that shall be applied to the SE when
     /// calculating the maximum bit rate.
-    pub speed_mantissa: u32,
+    pub speed_mantissa: u16,
     /// Return the amount of current the cable is designed for in 50ma units.
-    pub b_current_capability: u32,
+    pub b_current_capability: u8,
     /// The PPM shall set this field to a one if the cable has a VBUS connection
     /// from end to end.
-    pub vbus_in_cable: u32,
+    pub vbus_in_cable: bool,
     /// The PPM shall set this field to one if the cable is an Active cable
     /// otherwise it shall set this field to zero if the cable is a Passive
     /// cable.
@@ -518,17 +526,17 @@ pub struct UcsiCableProperty {
     /// The PPM shall set this field to one if the lane directionality is
     /// configurable else it shall set this field to zero if the lane
     /// directionality is fixed in the cable.
-    pub directionality: u32,
+    pub directionality: CablePropertyDirectionality,
     pub plug_end_type: CablePropertyPlugEndType,
     /// This field shall only be valid if the CableType field is set to one.
     /// This field shall indicate that the cable supports Alternate Modes.
     pub mode_support: bool,
     /// Cable’s major USB PD Revision from the Specification Revision field of
     /// the USB PD Message Header
-    pub cable_pd_revision: u32,
+    pub cable_pd_revision: u8,
     /// See Table 6-41 in the [USBPD] for additional information on the contents
     /// of this field.
-    pub latency: u32,
+    pub latency: u8,
 }
 
 impl FromBytes for UcsiCableProperty {
@@ -541,9 +549,9 @@ impl FromBytes for UcsiCableProperty {
                 #[cfg(feature = "backtrace")]
                 backtrace: std::backtrace::Backtrace::capture(),
             })?;
-        let speed_mantissa = reader.read::<u32>(14)?; // Read Speed Mantissa
-        let b_current_capability = reader.read::<u32>(8)?; // Read Current Capability
-        let vbus_in_cable = reader.read::<u32>(1)?; // Read VBUSInCable
+        let speed_mantissa = reader.read::<u16>(14)?; // Read Speed Mantissa
+        let b_current_capability = reader.read::<u8>(8)?; // Read Current Capability
+        let vbus_in_cable = reader.read_bit()?; // Read VBUSInCable
         let cable_type = reader.read::<u32>(1)?; // Read CableType
         let cable_type = CablePropertyType::n(cable_type).ok_or_else(|| Error::ParseError {
             field: "cable_type".into(),
@@ -552,6 +560,13 @@ impl FromBytes for UcsiCableProperty {
             backtrace: std::backtrace::Backtrace::capture(),
         })?;
         let directionality = reader.read::<u32>(1)?; // Read Directionality
+        let directionality =
+            CablePropertyDirectionality::n(directionality).ok_or_else(|| Error::ParseError {
+                field: "directionality".into(),
+                value: directionality,
+                #[cfg(feature = "backtrace")]
+                backtrace: std::backtrace::capture(),
+            })?;
         let plug_end_type = reader.read::<u32>(2)?;
         let plug_end_type =
             CablePropertyPlugEndType::n(plug_end_type).ok_or_else(|| Error::ParseError {
@@ -561,8 +576,8 @@ impl FromBytes for UcsiCableProperty {
                 backtrace: std::backtrace::Backtrace::capture(),
             })?;
         let mode_support = reader.read_bit()?; // Read Mode Support
-        let cable_pd_revision = reader.read::<u32>(2)?; // Read Cable PD Revision
-        let latency = reader.read::<u32>(4)?; // Read Latency
+        let cable_pd_revision = reader.read::<u8>(2)?; // Read Cable PD Revision
+        let latency = reader.read::<u8>(4)?; // Read Latency
 
         Ok(Self {
             speed_exponent,
@@ -623,7 +638,7 @@ pub struct UcsiCamSupported {
 
 #[repr(C)]
 #[derive(Debug, Clone, Printf, Snprintf)]
-pub struct UcsiCurrentCam {
+pub struct UcsiCurrentAlternatingModes {
     /// Offsets into the list of Alternate Modes that the connector is
     /// currently operating in.
     ///
