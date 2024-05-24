@@ -8,19 +8,19 @@ use mockall_double::double;
 
 use std::io::Cursor;
 
-use crate::pd::PdPdo;
+use crate::pd::Message;
+use crate::pd::PdMessageRecipient;
+use crate::pd::PdMessageResponseType;
+use crate::pd::Pdo;
+use crate::ucsi::AlternateMode;
+use crate::ucsi::CableProperty;
+use crate::ucsi::Capability;
+use crate::ucsi::Command;
+use crate::ucsi::ConnectorCapability;
+use crate::ucsi::ConnectorStatus;
 use crate::ucsi::GetAlternateModesRecipient;
-use crate::ucsi::PdMessage;
-use crate::ucsi::PdMessageRecipient;
-use crate::ucsi::PdMessageResponseType;
 use crate::ucsi::PdoSourceCapabilitiesType;
 use crate::ucsi::PdoType;
-use crate::ucsi::UcsiAlternateMode;
-use crate::ucsi::UcsiCableProperty;
-use crate::ucsi::UcsiCapability;
-use crate::ucsi::UcsiCommand;
-use crate::ucsi::UcsiConnectorCapability;
-use crate::ucsi::UcsiConnectorStatus;
 use crate::BcdWrapper;
 use crate::BitReader;
 use crate::Error;
@@ -143,7 +143,7 @@ impl UcsiDebugfsBackend {
     }
 
     /// Builds a u64 value from a UCSI command.
-    fn build_command_value(command: &UcsiCommand) -> Result<u64> {
+    fn build_command_value(command: &Command) -> Result<u64> {
         let mut buf = [0; 8];
         let mut bw = crate::BitWriter::new(Cursor::new(&mut buf[..]));
         let mut val = 0u64;
@@ -163,7 +163,7 @@ impl UcsiDebugfsBackend {
     }
 
     /// Execute the command, returning a string of bytes as a result.
-    pub fn execute(&mut self, command: UcsiCommand) -> Result<Vec<u8>> {
+    pub fn execute(&mut self, command: Command) -> Result<Vec<u8>> {
         let cmd_val = Self::build_command_value(&command)?;
         let cmd_str = Self::stringify_command_val(cmd_val)?;
 
@@ -175,29 +175,29 @@ impl UcsiDebugfsBackend {
 }
 
 impl OsBackend for UcsiDebugfsBackend {
-    fn capabilities(&mut self) -> Result<UcsiCapability> {
-        let cmd = UcsiCommand::GetCapability;
+    fn capabilities(&mut self) -> Result<Capability> {
+        let cmd = Command::GetCapability;
         let response = self.execute(cmd)?;
         let mut bitreader = BitReader::new(Cursor::new(&response[..]));
-        UcsiCapability::from_bytes(&mut bitreader)
+        Capability::from_bytes(&mut bitreader)
     }
 
-    fn connector_capabilties(&mut self, connector_nr: usize) -> Result<UcsiConnectorCapability> {
-        let cmd = UcsiCommand::GetConnectorCapability { connector_nr };
+    fn connector_capabilties(&mut self, connector_nr: usize) -> Result<ConnectorCapability> {
+        let cmd = Command::GetConnectorCapability { connector_nr };
         let response = self.execute(cmd)?;
         let mut bitreader = BitReader::new(Cursor::new(&response[..]));
-        UcsiConnectorCapability::from_bytes(&mut bitreader)
+        ConnectorCapability::from_bytes(&mut bitreader)
     }
 
     fn alternate_modes(
         &mut self,
         recipient: GetAlternateModesRecipient,
         connector_nr: usize,
-    ) -> Result<Vec<UcsiAlternateMode>> {
+    ) -> Result<Vec<AlternateMode>> {
         let mut alternate_modes = vec![];
 
         loop {
-            let cmd = UcsiCommand::GetAlternateModes {
+            let cmd = Command::GetAlternateModes {
                 recipient,
                 connector_nr,
             };
@@ -208,20 +208,20 @@ impl OsBackend for UcsiDebugfsBackend {
             }
 
             let mut bitreader = BitReader::new(Cursor::new(&response[..]));
-            alternate_modes.push(UcsiAlternateMode::from_bytes(&mut bitreader)?);
+            alternate_modes.push(AlternateMode::from_bytes(&mut bitreader)?);
         }
 
         Ok(alternate_modes)
     }
 
-    fn cable_properties(&mut self, connector_nr: usize) -> Result<UcsiCableProperty> {
-        let cmd = UcsiCommand::GetCableProperty { connector_nr };
+    fn cable_properties(&mut self, connector_nr: usize) -> Result<CableProperty> {
+        let cmd = Command::GetCableProperty { connector_nr };
         let response = self.execute(cmd)?;
         let mut bitreader = BitReader::new(Cursor::new(&response[..]));
-        UcsiCableProperty::from_bytes(&mut bitreader)
+        CableProperty::from_bytes(&mut bitreader)
     }
 
-    fn connector_status(&mut self, _: usize) -> Result<UcsiConnectorStatus> {
+    fn connector_status(&mut self, _: usize) -> Result<ConnectorStatus> {
         Err(Error::NotSupported {
             #[cfg(feature = "backtrace")]
             backtrace: std::backtrace::Backtrace::capture(),
@@ -233,7 +233,7 @@ impl OsBackend for UcsiDebugfsBackend {
         _: usize,
         _: PdMessageRecipient,
         _: PdMessageResponseType,
-    ) -> Result<PdMessage> {
+    ) -> Result<Message> {
         Err(Error::NotSupported {
             #[cfg(feature = "backtrace")]
             backtrace: std::backtrace::Backtrace::capture(),
@@ -249,7 +249,7 @@ impl OsBackend for UcsiDebugfsBackend {
         pdo_type: PdoType,
         source_capabilities_type: PdoSourceCapabilitiesType,
         revision: BcdWrapper,
-    ) -> Result<Vec<crate::pd::PdPdo>> {
+    ) -> Result<Vec<crate::pd::Pdo>> {
         let mut pdos = vec![];
         let mut nr_pdos_returned = 0;
         loop {
@@ -257,7 +257,7 @@ impl OsBackend for UcsiDebugfsBackend {
                 break;
             }
 
-            let cmd = UcsiCommand::GetPdos {
+            let cmd = Command::GetPdos {
                 connector_nr,
                 partner_pdo,
                 pdo_offset,
@@ -272,7 +272,7 @@ impl OsBackend for UcsiDebugfsBackend {
             }
 
             let mut bitreader = BitReader::new(Cursor::new(&response[..]));
-            let pdo = PdPdo::from_bytes(&mut bitreader, revision)?;
+            let pdo = Pdo::from_bytes(&mut bitreader, revision)?;
             pdos.push(pdo);
 
             nr_pdos_returned += 1;
@@ -305,7 +305,7 @@ mod tests {
 
     #[test]
     fn test_build_command_value_get_connector_capability() {
-        let command = UcsiCommand::GetConnectorCapability { connector_nr: 0 };
+        let command = Command::GetConnectorCapability { connector_nr: 0 };
         let result = UcsiDebugfsBackend::build_command_value(&command).unwrap();
         let expected = 65543u64;
 
@@ -328,9 +328,9 @@ mod tests {
             .returning(|| Ok(vec![]));
 
         let mut backend = UcsiDebugfsBackend::from(mock);
-        let response = backend.execute(UcsiCommand::GetCapability).unwrap();
+        let response = backend.execute(Command::GetCapability).unwrap();
 
         let mut br = BitReader::new(Cursor::new(&response[..]));
-        UcsiCapability::from_bytes(&mut br).expect("Failed to parse response");
+        Capability::from_bytes(&mut br).expect("Failed to parse response");
     }
 }

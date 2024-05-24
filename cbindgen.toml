@@ -11,3 +11,10 @@ prefix_with_name = true
 
 [parse.expand]
 crates = ["libtypec-rs"]
+features = ["c_api"]
+
+[export.rename]
+"Millivolt" = "TypeCRs_Millivolt"
+"Milliamp" = "TypeCRs_Milliamp"
+"Milliwatt" = "TypeCRs_Milliwatt"
+"Milliohm" = "TypeCRs_Milliohm"

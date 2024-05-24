@@ -6,11 +6,11 @@
 
 use argh::FromArgs;
 
+use libtypec_rs::pd::PdMessageRecipient;
+use libtypec_rs::pd::PdMessageResponseType;
 use libtypec_rs::typec::OsBackends;
 use libtypec_rs::typec::TypecRs;
 use libtypec_rs::ucsi::GetAlternateModesRecipient;
-use libtypec_rs::ucsi::PdMessageRecipient;
-use libtypec_rs::ucsi::PdMessageResponseType;
 use libtypec_rs::ucsi::PdoSourceCapabilitiesType;
 use libtypec_rs::ucsi::PdoType;
 use libtypec_rs::Error;

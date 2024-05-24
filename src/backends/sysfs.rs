@@ -10,19 +10,19 @@ use regex::Regex;
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::pd::PdPdo;
+use crate::pd::Message;
+use crate::pd::PdMessageRecipient;
+use crate::pd::PdMessageResponseType;
+use crate::pd::Pdo;
+use crate::ucsi::AlternateMode;
+use crate::ucsi::CableProperty;
+use crate::ucsi::Capability;
+use crate::ucsi::ConnectorCapability;
 use crate::ucsi::ConnectorCapabilityOperationMode;
+use crate::ucsi::ConnectorStatus;
 use crate::ucsi::GetAlternateModesRecipient;
-use crate::ucsi::PdMessage;
-use crate::ucsi::PdMessageRecipient;
-use crate::ucsi::PdMessageResponseType;
 use crate::ucsi::PdoSourceCapabilitiesType;
 use crate::ucsi::PdoType;
-use crate::ucsi::UcsiAlternateMode;
-use crate::ucsi::UcsiCableProperty;
-use crate::ucsi::UcsiCapability;
-use crate::ucsi::UcsiConnectorCapability;
-use crate::ucsi::UcsiConnectorStatus;
 use crate::BcdWrapper;
 use crate::Error;
 use crate::OsBackend;
@@ -61,21 +61,21 @@ pub mod sysfs_reader {
     use std::path::Path;
     use std::path::PathBuf;
 
-    use crate::pd::Pd3p2BatterySupplyPdo;
-    use crate::pd::Pd3p2DiscoverIdentityResponse;
-    use crate::pd::Pd3p2FastRoleSwap;
-    use crate::pd::Pd3p2FixedSupplyPdo;
-    use crate::pd::Pd3p2SprProgrammableSupplyPdo;
-    use crate::pd::Pd3p2VariableSupplyPdo;
+    use crate::pd::pd3p2::vdo::CertStat;
+    use crate::pd::pd3p2::vdo::IdHeader;
+    use crate::pd::pd3p2::vdo::Product;
+    use crate::pd::pd3p2::vdo::ProductType;
+    use crate::pd::pd3p2::BatterySupplyPdo;
+    use crate::pd::pd3p2::DiscoverIdentityResponse;
+    use crate::pd::pd3p2::FastRoleSwap;
+    use crate::pd::pd3p2::FixedSupplyPdo;
+    use crate::pd::pd3p2::SprProgrammableSupplyPdo;
+    use crate::pd::pd3p2::VariableSupplyPdo;
+    use crate::pd::PdMessageRecipient;
     use crate::ucsi::CablePropertyPlugEndType;
     use crate::ucsi::CablePropertyType;
     use crate::ucsi::ConnectorCapabilityOperationMode;
-    use crate::ucsi::PdMessageRecipient;
     use crate::ucsi::PdoType;
-    use crate::vdo::Pd3p2CertStatVdo;
-    use crate::vdo::Pd3p2IdHeaderVdo;
-    use crate::vdo::Pd3p2ProductTypeVdo;
-    use crate::vdo::Pd3p2ProductVdo;
     use crate::BcdWrapper;
     use crate::BitReader;
     use crate::Error;
@@ -259,7 +259,7 @@ pub mod sysfs_reader {
             &mut self,
             path: &Path,
             src_or_sink: PdoType,
-        ) -> Result<Pd3p2FixedSupplyPdo> {
+        ) -> Result<FixedSupplyPdo> {
             match src_or_sink {
                 PdoType::Source => {
                     self.set_path(&path.join("dual_role_power").to_string_lossy())?;
@@ -275,7 +275,7 @@ pub mod sysfs_reader {
                     self.set_path(&path.join("fast_role_swap").to_string_lossy())?;
                     let fast_role_swap = self.read_u32()?;
                     let fast_role_swap =
-                        Pd3p2FastRoleSwap::n(fast_role_swap).ok_or_else(|| Error::ParseError {
+                        FastRoleSwap::n(fast_role_swap).ok_or_else(|| Error::ParseError {
                             field: "fast_role_swap".into(),
                             value: fast_role_swap,
                             #[cfg(feature = "backtrace")]
@@ -286,7 +286,7 @@ pub mod sysfs_reader {
                     self.set_path(&path.join("maximum_current").to_string_lossy())?;
                     let operational_current = (self.read_u32()? / 10).into();
 
-                    Ok(Pd3p2FixedSupplyPdo {
+                    Ok(FixedSupplyPdo {
                         dual_role_power,
                         higher_capability,
                         unconstrained_power,
@@ -311,7 +311,7 @@ pub mod sysfs_reader {
                     self.set_path(&path.join("fast_role_swap_current").to_string_lossy())?;
                     let fast_role_swap = self.read_u32()?;
                     let fast_role_swap =
-                        Pd3p2FastRoleSwap::n(fast_role_swap).ok_or_else(|| Error::ParseError {
+                        FastRoleSwap::n(fast_role_swap).ok_or_else(|| Error::ParseError {
                             field: "fast_role_swap".into(),
                             value: fast_role_swap,
                             #[cfg(feature = "backtrace")]
@@ -322,7 +322,7 @@ pub mod sysfs_reader {
                     self.set_path(&path.join("operational_current").to_string_lossy())?;
                     let operational_current = (self.read_u32()? / 10).into();
 
-                    Ok(Pd3p2FixedSupplyPdo {
+                    Ok(FixedSupplyPdo {
                         dual_role_power,
                         higher_capability,
                         unconstrained_power,
@@ -340,7 +340,7 @@ pub mod sysfs_reader {
             &mut self,
             path: &Path,
             src_or_sink: PdoType,
-        ) -> Result<Pd3p2SprProgrammableSupplyPdo> {
+        ) -> Result<SprProgrammableSupplyPdo> {
             self.set_path(&path.join("maximum_voltage").to_string_lossy())?;
             let max_voltage = (self.read_u32()? / 50).into();
             self.set_path(&path.join("minimum_voltage").to_string_lossy())?;
@@ -357,7 +357,7 @@ pub mod sysfs_reader {
             } / 10)
                 .into();
 
-            Ok(Pd3p2SprProgrammableSupplyPdo {
+            Ok(SprProgrammableSupplyPdo {
                 max_voltage,
                 min_voltage,
                 max_current,
@@ -368,7 +368,7 @@ pub mod sysfs_reader {
             &mut self,
             path: &Path,
             src_or_sink: PdoType,
-        ) -> Result<Pd3p2BatterySupplyPdo> {
+        ) -> Result<BatterySupplyPdo> {
             self.set_path(&path.join("maximum_voltage").to_string_lossy())?;
             let max_voltage = (self.read_u32()? / 50).into();
             self.set_path(&path.join("minimum_voltage").to_string_lossy())?;
@@ -385,7 +385,7 @@ pub mod sysfs_reader {
             } / 250)
                 .into();
 
-            Ok(Pd3p2BatterySupplyPdo {
+            Ok(BatterySupplyPdo {
                 max_voltage,
                 min_voltage,
                 operational_power,
@@ -396,7 +396,7 @@ pub mod sysfs_reader {
             &mut self,
             path: &Path,
             _src_or_sink: PdoType,
-        ) -> Result<Pd3p2VariableSupplyPdo> {
+        ) -> Result<VariableSupplyPdo> {
             self.set_path(&path.join("maximum_voltage").to_string_lossy())?;
             let max_voltage = (self.read_u32()? / 100).into();
             self.set_path(&path.join("minimum_voltage").to_string_lossy())?;
@@ -404,7 +404,7 @@ pub mod sysfs_reader {
             self.set_path(&path.join("maximum_current").to_string_lossy())?;
             let max_current = (self.read_u32()? / 50).into();
 
-            Ok(Pd3p2VariableSupplyPdo {
+            Ok(VariableSupplyPdo {
                 max_voltage,
                 min_voltage,
                 max_current,
@@ -415,7 +415,7 @@ pub mod sysfs_reader {
             &mut self,
             conn_num: usize,
             recipient: PdMessageRecipient,
-        ) -> Result<Pd3p2DiscoverIdentityResponse> {
+        ) -> Result<DiscoverIdentityResponse> {
             let (cert_stat, id_header, product, product_type_vdo) = match recipient {
                 PdMessageRecipient::Sop => {
                     let path_str =
@@ -436,17 +436,17 @@ pub mod sysfs_reader {
 
             let binding = id_header.to_le_bytes();
             let mut br = BitReader::new(Cursor::new(&binding));
-            let id_header_vdo = Pd3p2IdHeaderVdo::from_bytes(&mut br)?;
+            let id_header_vdo = IdHeader::from_bytes(&mut br)?;
 
             let binding = cert_stat.to_le_bytes();
             let mut br = BitReader::new(Cursor::new(&binding));
-            let cert_stat = Pd3p2CertStatVdo::from_bytes(&mut br)?;
+            let cert_stat = CertStat::from_bytes(&mut br)?;
 
             let binding = product.to_le_bytes();
             let mut br = BitReader::new(Cursor::new(&binding));
-            let product_vdo = Pd3p2ProductVdo::from_bytes(&mut br)?;
+            let product_vdo = Product::from_bytes(&mut br)?;
 
-            Ok(Pd3p2DiscoverIdentityResponse {
+            Ok(DiscoverIdentityResponse {
                 header: Default::default(),
                 id_header_vdo,
                 cert_stat,
@@ -455,10 +455,7 @@ pub mod sysfs_reader {
             })
         }
 
-        fn read_identity(
-            &mut self,
-            path: &str,
-        ) -> Result<(u32, u32, u32, [Pd3p2ProductTypeVdo; 3])> {
+        fn read_identity(&mut self, path: &str) -> Result<(u32, u32, u32, [ProductType; 3])> {
             self.set_path(&format!("{}/{}", path, "cert_stat"))?;
             let cert_stat = self.read_u32()?;
             self.set_path(&format!("{}/{}", path, "id_header"))?;
@@ -466,15 +463,15 @@ pub mod sysfs_reader {
             self.set_path(&format!("{}/{}", path, "product"))?;
             let product = self.read_u32()?;
             let mut product_type_vdo = [
-                Pd3p2ProductTypeVdo::default(),
-                Pd3p2ProductTypeVdo::default(),
-                Pd3p2ProductTypeVdo::default(),
+                ProductType::default(),
+                ProductType::default(),
+                ProductType::default(),
             ];
             for (i, vdo) in product_type_vdo.iter_mut().enumerate() {
                 self.set_path(&format!("{}/product_type_vdo{}", path, i + 1))?;
                 let value = self.read_u32()?;
                 if value != 0 {
-                    *vdo = Pd3p2ProductTypeVdo::n(value).ok_or(Error::ParseError {
+                    *vdo = ProductType::n(value).ok_or(Error::ParseError {
                         field: "product_type_vdo".to_string(),
                         value,
                         #[cfg(feature = "backtrace")]
@@ -589,7 +586,7 @@ impl SysfsBackend {
 }
 
 impl OsBackend for SysfsBackend {
-    fn capabilities(&mut self) -> Result<UcsiCapability> {
+    fn capabilities(&mut self) -> Result<Capability> {
         let mut num_ports = 0;
         let mut num_alt_modes = 0;
         let mut pd_version = Default::default();
@@ -626,7 +623,7 @@ impl OsBackend for SysfsBackend {
             }
         }
 
-        let capabilities = UcsiCapability {
+        let capabilities = Capability {
             num_connectors: num_ports,
             num_alt_modes,
             pd_version,
@@ -640,13 +637,13 @@ impl OsBackend for SysfsBackend {
     fn connector_capabilties(
         &mut self,
         connector_nr: usize,
-    ) -> Result<crate::ucsi::UcsiConnectorCapability> {
+    ) -> Result<crate::ucsi::ConnectorCapability> {
         let path_str = format!("{SYSFS_TYPEC_PATH}/port{}", connector_nr);
 
         let port_content = format!("{}/{}", path_str, "power_role");
         self.reader.set_path(&port_content)?;
 
-        let mut connector_capabilities = UcsiConnectorCapability {
+        let mut connector_capabilities = ConnectorCapability {
             operation_mode: self.reader.read_opr()?,
             ..Default::default()
         };
@@ -681,7 +678,7 @@ impl OsBackend for SysfsBackend {
         &mut self,
         recipient: GetAlternateModesRecipient,
         connector_nr: usize,
-    ) -> Result<Vec<UcsiAlternateMode>> {
+    ) -> Result<Vec<AlternateMode>> {
         let mut alt_modes = vec![];
 
         loop {
@@ -713,7 +710,7 @@ impl OsBackend for SysfsBackend {
                 }
             };
 
-            let mut alt_mode = crate::ucsi::UcsiAlternateMode::default();
+            let mut alt_mode = crate::ucsi::AlternateMode::default();
 
             let svid_path = format!("{}/{}", path_str, "svid");
             if self.reader.set_path(&svid_path).is_err() {
@@ -734,8 +731,8 @@ impl OsBackend for SysfsBackend {
         Ok(alt_modes)
     }
 
-    fn cable_properties(&mut self, connector_nr: usize) -> Result<UcsiCableProperty> {
-        let mut cable_property = UcsiCableProperty::default();
+    fn cable_properties(&mut self, connector_nr: usize) -> Result<CableProperty> {
+        let mut cable_property = CableProperty::default();
         let path_str = format!("{}/port{}-cable", SYSFS_TYPEC_PATH, connector_nr);
 
         let plug_type_path = format!("{}/{}", path_str, "plug_type");
@@ -756,8 +753,8 @@ impl OsBackend for SysfsBackend {
         Ok(cable_property)
     }
 
-    fn connector_status(&mut self, connector_nr: usize) -> Result<UcsiConnectorStatus> {
-        let mut connector_status = UcsiConnectorStatus::default();
+    fn connector_status(&mut self, connector_nr: usize) -> Result<ConnectorStatus> {
+        let mut connector_status = ConnectorStatus::default();
 
         let partner_path_str = format!(
             "{}/port{}/port{}-partner",
@@ -807,13 +804,13 @@ impl OsBackend for SysfsBackend {
         connector_nr: usize,
         recipient: PdMessageRecipient,
         response_type: PdMessageResponseType,
-    ) -> Result<PdMessage> {
+    ) -> Result<Message> {
         match response_type {
-            PdMessageResponseType::DiscoverIdentity => {
-                Ok(PdMessage::Pd3p2DiscoverIdentityResponse(
-                    self.reader.discover_identity(connector_nr, recipient)?,
-                ))
-            }
+            // PdMessageResponseType::DiscoverIdentity => {
+            //     Ok(PdMessage::Pd3p2DiscoverIdentityResponse(
+            //         self.reader.discover_identity(connector_nr, recipient)?,
+            //     ))
+            // }
             _ => Err(Error::NotSupported {
                 #[cfg(feature = "backtrace")]
                 backtrace: std::backtrace::Backtrace::capture(),
@@ -830,7 +827,7 @@ impl OsBackend for SysfsBackend {
         pdo_type: PdoType,
         _source_capabilities_type: PdoSourceCapabilitiesType,
         _revision: BcdWrapper,
-    ) -> Result<Vec<crate::pd::PdPdo>> {
+    ) -> Result<Vec<crate::pd::Pdo>> {
         let mut pdos = Vec::new();
 
         let path_str = if partner_pdo {
@@ -874,17 +871,17 @@ impl OsBackend for SysfsBackend {
             let port_path = Path::new(&port_path);
 
             let pdo = if entry_name.contains("fixed") {
-                PdPdo::Pd3p2FixedSupplyPdo(self.reader.read_fixed_supply_pdo(port_path, pdo_type)?)
+                Pdo::Pd3p2FixedSupplyPdo(self.reader.read_fixed_supply_pdo(port_path, pdo_type)?)
             } else if entry_name.contains("variable") {
-                PdPdo::Pd3p2VariableSupplyPdo(
+                Pdo::Pd3p2VariableSupplyPdo(
                     self.reader.read_variable_supply_pdo(port_path, pdo_type)?,
                 )
             } else if entry_name.contains("battery") {
-                PdPdo::Pd3p2BatterySupplyPdo(
+                Pdo::Pd3p2BatterySupplyPdo(
                     self.reader.read_battery_supply_pdo(port_path, pdo_type)?,
                 )
             } else if entry_name.contains("programmable") {
-                PdPdo::Pd3p2AugmentedPdo(
+                Pdo::Pd3p2AugmentedPdo(
                     self.reader
                         .read_programmable_supply_pdo(port_path, pdo_type)?,
                 )
@@ -1124,7 +1121,7 @@ mod tests {
         // Check that we can get the capabilities.
         let actual = backend.capabilities().unwrap();
 
-        let expected = UcsiCapability {
+        let expected = Capability {
             num_connectors: 2,
             num_alt_modes: 6,
             pd_version: BcdWrapper(0x300),
@@ -1166,7 +1163,7 @@ mod tests {
 
         // Check that we can get the connector capabilities.
         let actual = backend.connector_capabilties(0).unwrap();
-        let mut expected = UcsiConnectorCapability {
+        let mut expected = ConnectorCapability {
             operation_mode: ConnectorCapabilityOperationMode::Drp,
             provider: true,
             consumer: true,
@@ -1369,7 +1366,7 @@ mod tests {
 
         let actual = backend.cable_properties(0).unwrap();
 
-        let expected = UcsiCableProperty {
+        let expected = CableProperty {
             plug_end_type: CablePropertyPlugEndType::UsbTypeC,
             cable_type: CablePropertyType::Active,
             mode_support: true,

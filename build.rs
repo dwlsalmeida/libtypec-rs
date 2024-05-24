@@ -6,9 +6,9 @@ fn main() {
         let profile = std::env::var("PROFILE").unwrap();
         let target_dir = std::path::Path::new("target").join(profile);
 
-        run_cbindgen(&out_dir, &target_dir);
-        build_c_examples(&target_dir);
-        generate_pkg_config(&out_dir, &target_dir);
+        // run_cbindgen(&out_dir, &target_dir);
+        // build_c_examples(&target_dir);
+        // generate_pkg_config(&out_dir, &target_dir);
     }
 }
 
@@ -27,9 +27,15 @@ fn run_cbindgen(out_dir: &String, target_dir: &std::path::Path) {
         .with_parse_expand(&["libtypec-rs"])
         .generate()
         .expect("Unable to generate bindings")
-        .write_to_file(&header_path);
+        .write_to_file(header_path);
 
-    std::fs::copy(&header_path, target_dir.join("libtypec-rs.h")).unwrap();
+    // Some weird issue is going on here if we reuse the header_path variable in
+    // conjunction with parse.expand.features
+    std::fs::copy(
+        std::path::Path::new(&out_dir).join("libtypec-rs.h"),
+        target_dir.join("libtypec-rs.h"),
+    )
+    .unwrap();
 }
 
 #[cfg(feature = "c_api")]

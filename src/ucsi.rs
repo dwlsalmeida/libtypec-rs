@@ -7,9 +7,12 @@
 use bitstream_io::BitRead;
 use bitstream_io::BitWrite;
 use enumn::N;
+use proc_macros::CApiWrapper;
 use proc_macros::Printf;
 use proc_macros::Snprintf;
 
+use crate::pd::PdMessageRecipient;
+use crate::pd::PdMessageResponseType;
 use crate::BcdWrapper;
 use crate::BitReader;
 use crate::Error;
@@ -48,8 +51,8 @@ pub enum PdoSourceCapabilitiesType {
     MaximumSupportedSourceCapabilities,
 }
 
-#[derive(Debug, Clone, Printf, Snprintf)]
-pub enum UcsiCommand {
+#[derive(Debug, Clone)]
+pub enum Command {
     /// This command is used to get the PPM capabilities.
     GetCapability,
     /// This command is used to get the capabilities of a connector.
@@ -133,35 +136,35 @@ pub enum UcsiCommand {
     },
 }
 
-impl UcsiCommand {
+impl Command {
     /// See UCSI 3.0 - Table A.1
     pub fn cmd_number(&self) -> u32 {
         match &self {
-            UcsiCommand::GetCapability => 0x06,
-            UcsiCommand::GetConnectorCapability { .. } => 0x07,
-            UcsiCommand::GetAlternateModes { .. } => 0x0c,
-            UcsiCommand::GetCamSupported { .. } => 0x0d,
-            UcsiCommand::GetCurrentCam { .. } => 0xe,
-            UcsiCommand::GetPdos { .. } => 0x10,
-            UcsiCommand::GetCableProperty { .. } => 0x11,
-            UcsiCommand::GetConnectorStatus { .. } => 0x12,
-            UcsiCommand::GetPdMessage { .. } => 0x15,
+            Command::GetCapability => 0x06,
+            Command::GetConnectorCapability { .. } => 0x07,
+            Command::GetAlternateModes { .. } => 0x0c,
+            Command::GetCamSupported { .. } => 0x0d,
+            Command::GetCurrentCam { .. } => 0xe,
+            Command::GetPdos { .. } => 0x10,
+            Command::GetCableProperty { .. } => 0x11,
+            Command::GetConnectorStatus { .. } => 0x12,
+            Command::GetPdMessage { .. } => 0x15,
         }
     }
 }
 
-impl ToBytes for UcsiCommand {
+impl ToBytes for Command {
     fn to_bytes(&self, bw: &mut crate::BitWriter) -> Result<()> {
         let command = self.cmd_number();
         bw.write(8, command)?;
         match self {
-            UcsiCommand::GetCapability => {}
-            UcsiCommand::GetConnectorCapability { connector_nr } => {
+            Command::GetCapability => {}
+            Command::GetConnectorCapability { connector_nr } => {
                 // Data length
                 bw.write(8, 0)?;
                 bw.write(7, *connector_nr as u32 + 1)?;
             }
-            UcsiCommand::GetAlternateModes {
+            Command::GetAlternateModes {
                 recipient,
                 connector_nr,
             } => {
@@ -174,17 +177,17 @@ impl ToBytes for UcsiCommand {
                 // Reserved
                 bw.write(1, 0)?;
             }
-            UcsiCommand::GetCamSupported { connector_nr } => {
+            Command::GetCamSupported { connector_nr } => {
                 // Data length
                 bw.write(8, 0)?;
                 bw.write(7, *connector_nr as u32 + 1)?;
             }
-            UcsiCommand::GetCurrentCam { connector_nr } => {
+            Command::GetCurrentCam { connector_nr } => {
                 // Data length
                 bw.write(8, 0)?;
                 bw.write(7, *connector_nr as u32 + 1)?;
             }
-            UcsiCommand::GetPdos {
+            Command::GetPdos {
                 connector_nr,
                 partner_pdo,
                 pdo_offset,
@@ -201,17 +204,17 @@ impl ToBytes for UcsiCommand {
                 bw.write(1, *src_or_sink_pdos as u32)?;
                 bw.write(2, *pdo_type as u32)?;
             }
-            UcsiCommand::GetCableProperty { connector_nr } => {
+            Command::GetCableProperty { connector_nr } => {
                 // Data length
                 bw.write(8, 0)?;
                 bw.write(7, *connector_nr as u32 + 1)?;
             }
-            UcsiCommand::GetConnectorStatus { connector_nr } => {
+            Command::GetConnectorStatus { connector_nr } => {
                 // Data length
                 bw.write(8, 0)?;
                 bw.write(7, *connector_nr as u32 + 1)?;
             }
-            UcsiCommand::GetPdMessage {
+            Command::GetPdMessage {
                 connector_nr,
                 recipient,
                 message_type,
@@ -230,65 +233,10 @@ impl ToBytes for UcsiCommand {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Printf, Snprintf)]
-pub enum PdMessage {
-    /// Sink Capabilities Extended (Extended Message)
-    Pd3p2SinkCapabilitiesExtended(crate::pd::Pd3p2SinkCapabilitiesExtended),
-    /// Source Capabilities Extended (Extended Message)
-    Pd3p2SourceCapabilitiesExtended(crate::pd::Pd3p2SourceCapabilitiesExtended),
-    /// Battery Capabilities (Extended Message)
-    Pd3p2BatteryCapabilities(crate::pd::Pd3p2BatteryCapData),
-    /// Battery Status (Data Message)
-    Pd3p2BatteryStatus(crate::pd::Pd3p2BatteryStatusData),
-    /// Discover Identity Response – ACK, NAK or BUSY (Structured VDM)
-    Pd3p2DiscoverIdentityResponse(crate::pd::Pd3p2DiscoverIdentityResponse),
-    /// Revision (Data Message)
-    Pd3p2Revision(crate::pd::Pd3p2RevisionMessageData),
-}
-
-/// This enum represents the recipient of the PD message.
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Printf, Snprintf, N, Copy)]
-pub enum PdMessageRecipient {
-    /// The OPM wants to retrieve the USB PD response message from the
-    /// identified connector.
-    Connector,
-    /// The OPM wants to retrieve the USB PD response message from the port
-    /// partner of the identified connector.
-    Sop,
-    /// The OPM wants to retrieve the USB PD response message from the cable
-    /// plug of the identified connector.
-    SopPrime,
-    /// The OPM wants to retrieve the USB PD response message from the cable
-    /// plug of the identified connector.
-    SopDoublePrime,
-}
-
-/// This enum represents the type of the PD response message.
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Printf, Snprintf, N, Copy)]
-pub enum PdMessageResponseType {
-    /// Sink Capabilities Extended (Extended Message)
-    SinkCapabilitiesExtended,
-    /// Source Capabilities Extended (Extended Message)
-    SourceCapabilitiesExtended,
-    /// Battery Capabilities (Extended Message)
-    BatteryCapabilities,
-    /// Battery Status (Data Message)
-    BatteryStatus,
-    /// Discover Identity Response – ACK, NAK or BUSY (Structured VDM)
-    DiscoverIdentity,
-    /// Revision (Data Message)
-    Revision,
-    /// Reserved values.
-    Reserved,
-}
-
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
+#[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 /// This struct represents the GET_CONNECTOR_STATUS data.
-pub struct UcsiConnectorStatus {
+pub struct ConnectorStatus {
     /// A bitmap indicating the types of status changes that have occurred on
     /// the connector. See table 6-44 for a description of each bit.
     pub connector_status_change: ConnectorStatusChange,
@@ -350,8 +298,8 @@ pub struct UcsiConnectorStatus {
 
 /// Connector Status Change Field Description for GET_CONNECTOR_STATUS. See
 /// UCSI Table 6-44 for more information.
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
+#[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub struct ConnectorStatusChange {
     /// Bit 0: Reserved. Shall be set to zero.
     pub reserved1: bool,
@@ -395,9 +343,8 @@ pub struct ConnectorStatusChange {
     pub connector_partner_changed: bool,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
-/// This enum represents the Orientation.
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum ConnectorOrientation {
     /// The connection is in the normal orientation.
     #[default]
@@ -406,9 +353,8 @@ pub enum ConnectorOrientation {
     Reverse = 1,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
-/// This enum represents the Sink Path Status.
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum SinkPathStatus {
     /// The Sink Path is not ready.
     #[default]
@@ -417,9 +363,8 @@ pub enum SinkPathStatus {
     Ready = 1,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
-/// This enum represents the Power Operation Mode.
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum PowerOperationMode {
     #[default]
     Reserved = 0,
@@ -432,18 +377,16 @@ pub enum PowerOperationMode {
     Reserved2 = 7,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
-/// This enum represents the Power Direction.
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum PowerDirection {
     #[default]
     Consumer = 0,
     Provider = 1,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
-/// This enum represents the Connector Partner Type.
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum ConnectorPartnerType {
     #[default]
     Reserved = 0,
@@ -456,9 +399,8 @@ pub enum ConnectorPartnerType {
     Reserved2 = 7,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
-/// This enum represents the Battery Charging Capability Status.
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum BatteryChargingCapabilityStatus {
     #[default]
     NotCharging = 0,
@@ -467,8 +409,8 @@ pub enum BatteryChargingCapabilityStatus {
     VerySlowChargingRate = 3,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum CablePropertySpeedExponent {
     #[default]
     Bps = 0,
@@ -477,8 +419,8 @@ pub enum CablePropertySpeedExponent {
     Gbps = 3,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum CablePropertyPlugEndType {
     #[default]
     UsbTypeA,
@@ -487,26 +429,26 @@ pub enum CablePropertyPlugEndType {
     OtherNotUsb,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum CablePropertyType {
     #[default]
     Passive = 0,
     Active = 1,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum CablePropertyDirectionality {
     #[default]
     Configurable = 0,
     Fixed = 1,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
+#[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 /// See UCSI Table 6-40: GET_CABLE_PROPERTY Data
-pub struct UcsiCableProperty {
+pub struct CableProperty {
     /// Speed Exponent (SE). This field defines the base 10 exponent times 3,
     /// that shall be applied to the Speed Mantissa (SM) when calculating the
     /// maximum bit rate that this Cable supports.
@@ -539,7 +481,7 @@ pub struct UcsiCableProperty {
     pub latency: u8,
 }
 
-impl FromBytes for UcsiCableProperty {
+impl FromBytes for CableProperty {
     fn from_bytes(reader: &mut BitReader) -> Result<Self> {
         let speed_exponent = reader.read::<u32>(2)?;
         let speed_exponent =
@@ -597,14 +539,14 @@ impl FromBytes for UcsiCableProperty {
 /// The response to a GET_ALTERNATE_MODES command.
 ///
 /// See USCI 3.0 - Table 6.26.
-#[repr(C)]
-#[derive(Clone, PartialEq, Default, Printf, Snprintf)]
-pub struct UcsiAlternateMode {
+#[derive(Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
+pub struct AlternateMode {
     pub svid: [u32; 2],
     pub vdo: [u32; 2],
 }
 
-impl FromBytes for UcsiAlternateMode {
+impl FromBytes for AlternateMode {
     fn from_bytes(reader: &mut BitReader) -> Result<Self> {
         let svid_0 = reader.read::<u32>(16)?; // Read SVID[0]
         let mid_0 = reader.read::<u32>(32)?; // Read MID[0]
@@ -618,7 +560,7 @@ impl FromBytes for UcsiAlternateMode {
     }
 }
 
-impl std::fmt::Debug for UcsiAlternateMode {
+impl std::fmt::Debug for AlternateMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let vdo = format!("{:#08x}", self.vdo[0]);
         f.debug_struct("UcsiAlternateMode")
@@ -628,17 +570,17 @@ impl std::fmt::Debug for UcsiAlternateMode {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Printf, Snprintf)]
+#[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 /// See UCSI - Table 6-29: GET_CAM_SUPPORTED Data
-pub struct UcsiCamSupported {
+pub struct CamSupported {
     /// Whether an alternate mode is supported.
     pub cam_supported: bool,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Printf, Snprintf)]
-pub struct UcsiCurrentAlternatingModes {
+#[derive(Debug, Clone, PartialEq, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
+pub struct CurrentAlternatingModes {
     /// Offsets into the list of Alternate Modes that the connector is
     /// currently operating in.
     ///
@@ -648,8 +590,16 @@ pub struct UcsiCurrentAlternatingModes {
     pub current_alternate_mode: [usize; UCSI_MAX_NUM_ALT_MODE],
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
+impl Default for CurrentAlternatingModes {
+    fn default() -> Self {
+        Self {
+            current_alternate_mode: [0; UCSI_MAX_NUM_ALT_MODE],
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 /// Connector capability data extended operation mode.
 pub enum ConnectorCapabilityOperationMode {
     #[default]
@@ -663,8 +613,8 @@ pub enum ConnectorCapabilityOperationMode {
     AlternateMode,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 /// Connector capability data extended operation mode.
 pub enum ConnectorCapabilityExtendedOperationMode {
     #[default]
@@ -675,8 +625,8 @@ pub enum ConnectorCapabilityExtendedOperationMode {
     Usb4Gen4,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf, N)]
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 /// Connector capability data miscellaneous capabilities.
 pub enum ConnectorCapabilityMiscellaneousCapabilities {
     #[default]
@@ -684,11 +634,11 @@ pub enum ConnectorCapabilityMiscellaneousCapabilities {
     Security,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
+#[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 /// The response to a `GET_CONNECTOR_CAPABILITY` command.
 /// See UCSI - Table 6-17: GET_CONNECTOR_CAPABILTY Data
-pub struct UcsiConnectorCapability {
+pub struct ConnectorCapability {
     /// This field shall indicate the mode that the connector can support.
     ///
     /// Note: Additional capabilities are described in the Extended Operation
@@ -726,7 +676,7 @@ pub struct UcsiConnectorCapability {
     pub partner_pd_revision: u8,
 }
 
-impl FromBytes for UcsiConnectorCapability {
+impl FromBytes for ConnectorCapability {
     fn from_bytes(reader: &mut BitReader) -> Result<Self> {
         let operation_mode_value = reader.read::<u32>(8)?;
         let operation_mode =
@@ -782,17 +732,17 @@ impl FromBytes for UcsiConnectorCapability {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
-pub struct UcsiCapability {
+#[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
+pub struct Capability {
     /// The supported PPM features.
-    pub bm_attributes: UcsiBmAttributes,
+    pub bm_attributes: BmAttributes,
     /// This field indicates the number of Connectors that this PPM supports.
     ///
     ///  A value of zero is illegal in this field.
     pub num_connectors: usize,
     /// Optional features supported.
-    pub bm_optional_features: UcsiBmOptionalFeatures,
+    pub bm_optional_features: BmOptionalFeatures,
     /// This field indicates the number of Alternate Modes that this PPM
     /// supports.
     ///
@@ -822,12 +772,12 @@ pub struct UcsiCapability {
     pub usb_type_c_version: BcdWrapper,
 }
 
-impl FromBytes for UcsiCapability {
+impl FromBytes for Capability {
     fn from_bytes(reader: &mut BitReader) -> Result<Self> {
-        let bm_attributes = UcsiBmAttributes::from_bytes(reader)?;
+        let bm_attributes = BmAttributes::from_bytes(reader)?;
         let num_connectors = reader.read::<u32>(7)? as usize;
         reader.skip(1)?; // Skip reserved bit
-        let bm_optional_features = UcsiBmOptionalFeatures::from_bytes(reader)?;
+        let bm_optional_features = BmOptionalFeatures::from_bytes(reader)?;
         let num_alt_modes: usize = reader.read::<u32>(8)? as usize;
         reader.skip(8)?; // Skip reserved bits
         let bc_version = BcdWrapper(reader.read(16)?);
@@ -846,9 +796,9 @@ impl FromBytes for UcsiCapability {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
-pub struct UcsiBmAttributes {
+#[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
+pub struct BmAttributes {
     /// Indicates whether this platform supports the Disabled State as defined
     /// in Section 4.5.2.2.1 in the [USBTYPEC].
     pub disabled_state_support: bool,
@@ -863,10 +813,10 @@ pub struct UcsiBmAttributes {
     /// bcdUSBTypeCVersion field.
     pub usb_type_c_current: bool,
     /// Indicates which sources are supported.
-    pub bm_power_source: UcsiBmPowerSource,
+    pub bm_power_source: BmPowerSource,
 }
 
-impl FromBytes for UcsiBmAttributes {
+impl FromBytes for BmAttributes {
     fn from_bytes(reader: &mut BitReader) -> Result<Self> {
         let disabled_state_support: bool = reader.read_bit()?;
         let battery_charging: bool = reader.read_bit()?;
@@ -874,7 +824,7 @@ impl FromBytes for UcsiBmAttributes {
         reader.skip(3)?; // Skip reserved bits
         let usb_type_c_current: bool = reader.read_bit()?;
         reader.skip(1)?; // Skip reserved bit
-        let bm_power_source = UcsiBmPowerSource::from_bytes(reader)?;
+        let bm_power_source = BmPowerSource::from_bytes(reader)?;
         reader.skip(16)?; // Skip reserved bits
 
         Ok(Self {
@@ -887,9 +837,9 @@ impl FromBytes for UcsiBmAttributes {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
-pub struct UcsiBmOptionalFeatures {
+#[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
+pub struct BmOptionalFeatures {
     /// This feature indicates that the PPM supports the SET_CCOM command.
     pub set_ccom_supported: bool,
     /// This command is required and shall be set to always supported.
@@ -928,7 +878,7 @@ pub struct UcsiBmOptionalFeatures {
     pub chunking_supported: bool,
 }
 
-impl FromBytes for UcsiBmOptionalFeatures {
+impl FromBytes for BmOptionalFeatures {
     fn from_bytes(reader: &mut BitReader) -> Result<Self> {
         let set_ccom_supported: bool = reader.read_bit()?;
         let set_power_level_supported: bool = reader.read_bit()?;
@@ -969,15 +919,15 @@ impl FromBytes for UcsiBmOptionalFeatures {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Default, Printf, Snprintf)]
-pub struct UcsiBmPowerSource {
+#[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
+pub struct BmPowerSource {
     pub ac_supply: bool,
     pub other: bool,
     pub uses_vbus: bool,
 }
 
-impl FromBytes for UcsiBmPowerSource {
+impl FromBytes for BmPowerSource {
     fn from_bytes(reader: &mut BitReader) -> Result<Self> {
         let ac_supply: bool = reader.read_bit()?;
         reader.skip(1)?; // Skip reserved bit

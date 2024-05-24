@@ -20,18 +20,18 @@
 use std::io::Cursor;
 
 use bitstream_io::LittleEndian;
-use pd::PdPdo;
+use pd::Message;
+use pd::PdMessageRecipient;
+use pd::PdMessageResponseType;
+use pd::Pdo;
+use ucsi::AlternateMode;
+use ucsi::CableProperty;
+use ucsi::Capability;
+use ucsi::ConnectorCapability;
+use ucsi::ConnectorStatus;
 use ucsi::GetAlternateModesRecipient;
-use ucsi::PdMessage;
-use ucsi::PdMessageRecipient;
-use ucsi::PdMessageResponseType;
 use ucsi::PdoSourceCapabilitiesType;
 use ucsi::PdoType;
-use ucsi::UcsiAlternateMode;
-use ucsi::UcsiCableProperty;
-use ucsi::UcsiCapability;
-use ucsi::UcsiConnectorCapability;
-use ucsi::UcsiConnectorStatus;
 
 pub mod backends;
 pub mod pd;
@@ -45,26 +45,26 @@ pub type Result<T> = std::result::Result<T, crate::Error>;
 
 /// A trait that abstracts the platform-specific backend.
 pub trait OsBackend {
-    fn capabilities(&mut self) -> Result<UcsiCapability>;
+    fn capabilities(&mut self) -> Result<Capability>;
 
-    fn connector_capabilties(&mut self, connector_nr: usize) -> Result<UcsiConnectorCapability>;
+    fn connector_capabilties(&mut self, connector_nr: usize) -> Result<ConnectorCapability>;
 
     fn alternate_modes(
         &mut self,
         recipient: GetAlternateModesRecipient,
         connector_nr: usize,
-    ) -> Result<Vec<UcsiAlternateMode>>;
+    ) -> Result<Vec<AlternateMode>>;
 
-    fn cable_properties(&mut self, connector_nr: usize) -> Result<UcsiCableProperty>;
+    fn cable_properties(&mut self, connector_nr: usize) -> Result<CableProperty>;
 
-    fn connector_status(&mut self, connector_nr: usize) -> Result<UcsiConnectorStatus>;
+    fn connector_status(&mut self, connector_nr: usize) -> Result<ConnectorStatus>;
 
     fn pd_message(
         &mut self,
         connector_nr: usize,
         recipient: PdMessageRecipient,
         response_type: PdMessageResponseType,
-    ) -> Result<PdMessage>;
+    ) -> Result<Message>;
 
     #[allow(clippy::too_many_arguments)]
     fn pdos(
@@ -76,7 +76,7 @@ pub trait OsBackend {
         pdo_type: PdoType,
         source_capabilities_type: PdoSourceCapabilitiesType,
         revision: BcdWrapper,
-    ) -> Result<Vec<PdPdo>>;
+    ) -> Result<Vec<Pdo>>;
 }
 
 /// A trait for serializing an object to a byte stream.
@@ -390,15 +390,15 @@ impl From<u32> for Milliwatt {
 #[repr(transparent)]
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 /// A wrapper that can pretty-print the underlying milliohm value.
-pub struct MilliOhm(pub u32);
+pub struct Milliohm(pub u32);
 
-impl std::fmt::Debug for MilliOhm {
+impl std::fmt::Debug for Milliohm {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}mΩ", self.0)
     }
 }
 
-impl From<u32> for MilliOhm {
+impl From<u32> for Milliohm {
     fn from(val: u32) -> Self {
         Self(val)
     }
