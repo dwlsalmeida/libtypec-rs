@@ -11,12 +11,20 @@ use proc_macros::Snprintf;
 use crate::pd::pd3p2::vdo::CertStat;
 use crate::pd::pd3p2::vdo::Dfp;
 use crate::pd::pd3p2::vdo::IdHeader;
-use crate::pd::pd3p2::vdo::Pd3p2VdoCertStat;
-use crate::pd::pd3p2::vdo::Pd3p2VdoDfp;
-use crate::pd::pd3p2::vdo::Pd3p2VdoIdHeader;
-use crate::pd::pd3p2::vdo::Pd3p2VdoProductType;
-use crate::pd::pd3p2::vdo::Pd3p2VdoUfp;
-use crate::pd::pd3p2::vdo::Pd3p2VdoVpd;
+
+#[cfg(feature = "c_api")]
+pub(crate) mod c_api {
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoCertStat;
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoDfp;
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoIdHeader;
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoProductType;
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoUfp;
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoVpd;
+}
+
+#[cfg(feature = "c_api")]
+pub(crate) use c_api::*;
+
 use crate::pd::pd3p2::vdo::ProductType;
 use crate::pd::pd3p2::vdo::Ufp;
 use crate::pd::pd3p2::vdo::Vpd;

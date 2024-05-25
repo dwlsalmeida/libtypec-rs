@@ -11,8 +11,8 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use crate::pd::Message;
-use crate::pd::PdMessageRecipient;
-use crate::pd::PdMessageResponseType;
+use crate::pd::MessageRecipient;
+use crate::pd::MessageResponseType;
 use crate::pd::Pdo;
 use crate::ucsi::AlternateMode;
 use crate::ucsi::CableProperty;
@@ -71,7 +71,7 @@ pub mod sysfs_reader {
     use crate::pd::pd3p2::FixedSupplyPdo;
     use crate::pd::pd3p2::SprProgrammableSupplyPdo;
     use crate::pd::pd3p2::VariableSupplyPdo;
-    use crate::pd::PdMessageRecipient;
+    use crate::pd::MessageRecipient;
     use crate::ucsi::CablePropertyPlugEndType;
     use crate::ucsi::CablePropertyType;
     use crate::ucsi::ConnectorCapabilityOperationMode;
@@ -414,15 +414,15 @@ pub mod sysfs_reader {
         pub fn discover_identity(
             &mut self,
             conn_num: usize,
-            recipient: PdMessageRecipient,
+            recipient: MessageRecipient,
         ) -> Result<DiscoverIdentityResponse> {
             let (cert_stat, id_header, product, product_type_vdo) = match recipient {
-                PdMessageRecipient::Sop => {
+                MessageRecipient::Sop => {
                     let path_str =
                         format!("{}/port{}-partner/identity", SYSFS_TYPEC_PATH, conn_num);
                     self.read_identity(&path_str)?
                 }
-                PdMessageRecipient::SopPrime => {
+                MessageRecipient::SopPrime => {
                     let path_str = format!("{}/port{}-cable/identity", SYSFS_TYPEC_PATH, conn_num);
                     self.read_identity(&path_str)?
                 }
@@ -802,8 +802,8 @@ impl OsBackend for SysfsBackend {
     fn pd_message(
         &mut self,
         connector_nr: usize,
-        recipient: PdMessageRecipient,
-        response_type: PdMessageResponseType,
+        recipient: MessageRecipient,
+        response_type: MessageResponseType,
     ) -> Result<Message> {
         match response_type {
             // PdMessageResponseType::DiscoverIdentity => {

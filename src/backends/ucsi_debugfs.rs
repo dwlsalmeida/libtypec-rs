@@ -9,8 +9,8 @@ use mockall_double::double;
 use std::io::Cursor;
 
 use crate::pd::Message;
-use crate::pd::PdMessageRecipient;
-use crate::pd::PdMessageResponseType;
+use crate::pd::MessageRecipient;
+use crate::pd::MessageResponseType;
 use crate::pd::Pdo;
 use crate::ucsi::AlternateMode;
 use crate::ucsi::CableProperty;
@@ -231,8 +231,8 @@ impl OsBackend for UcsiDebugfsBackend {
     fn pd_message(
         &mut self,
         _: usize,
-        _: PdMessageRecipient,
-        _: PdMessageResponseType,
+        _: MessageRecipient,
+        _: MessageResponseType,
     ) -> Result<Message> {
         Err(Error::NotSupported {
             #[cfg(feature = "backtrace")]

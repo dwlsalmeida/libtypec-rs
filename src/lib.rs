@@ -21,8 +21,8 @@ use std::io::Cursor;
 
 use bitstream_io::LittleEndian;
 use pd::Message;
-use pd::PdMessageRecipient;
-use pd::PdMessageResponseType;
+use pd::MessageRecipient;
+use pd::MessageResponseType;
 use pd::Pdo;
 use ucsi::AlternateMode;
 use ucsi::CableProperty;
@@ -62,8 +62,8 @@ pub trait OsBackend {
     fn pd_message(
         &mut self,
         connector_nr: usize,
-        recipient: PdMessageRecipient,
-        response_type: PdMessageResponseType,
+        recipient: MessageRecipient,
+        response_type: MessageResponseType,
     ) -> Result<Message>;
 
     #[allow(clippy::too_many_arguments)]

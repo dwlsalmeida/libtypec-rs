@@ -23,16 +23,6 @@ use crate::Result;
 use crate::pd::pd3p2::BatteryCapData;
 use crate::pd::pd3p2::BatteryStatusData;
 use crate::pd::pd3p2::DiscoverIdentityResponse;
-use crate::pd::pd3p2::Pd3p2BatteryCapData;
-use crate::pd::pd3p2::Pd3p2BatteryStatusData;
-use crate::pd::pd3p2::Pd3p2BatterySupplyPdo;
-use crate::pd::pd3p2::Pd3p2DiscoverIdentityResponse;
-use crate::pd::pd3p2::Pd3p2FixedSupplyPdo;
-use crate::pd::pd3p2::Pd3p2RevisionMessageData;
-use crate::pd::pd3p2::Pd3p2SinkCapabilitiesExtended;
-use crate::pd::pd3p2::Pd3p2SourceCapabilitiesExtended;
-use crate::pd::pd3p2::Pd3p2SprProgrammableSupplyPdo;
-use crate::pd::pd3p2::Pd3p2VariableSupplyPdo;
 use crate::pd::pd3p2::RevisionMessageData;
 use crate::pd::pd3p2::SinkCapabilitiesExtended;
 use crate::pd::pd3p2::SourceCapabilitiesExtended;
@@ -40,6 +30,23 @@ use crate::pd::pd3p2::SprProgrammableSupplyPdo;
 use crate::pd::pd3p2::VariableSupplyPdo;
 
 pub mod pd3p2;
+
+#[cfg(feature = "c_api")]
+pub(crate) mod c_api {
+    pub(crate) use crate::pd::pd3p2::Pd3p2BatteryCapData;
+    pub(crate) use crate::pd::pd3p2::Pd3p2BatteryStatusData;
+    pub(crate) use crate::pd::pd3p2::Pd3p2BatterySupplyPdo;
+    pub(crate) use crate::pd::pd3p2::Pd3p2DiscoverIdentityResponse;
+    pub(crate) use crate::pd::pd3p2::Pd3p2FixedSupplyPdo;
+    pub(crate) use crate::pd::pd3p2::Pd3p2RevisionMessageData;
+    pub(crate) use crate::pd::pd3p2::Pd3p2SinkCapabilitiesExtended;
+    pub(crate) use crate::pd::pd3p2::Pd3p2SourceCapabilitiesExtended;
+    pub(crate) use crate::pd::pd3p2::Pd3p2SprProgrammableSupplyPdo;
+    pub(crate) use crate::pd::pd3p2::Pd3p2VariableSupplyPdo;
+}
+
+#[cfg(feature = "c_api")]
+pub(crate) use c_api::*;
 
 #[derive(Debug, Clone, PartialEq, Default, N, CApiWrapper)]
 #[c_api(prefix = "Pd", repr_c = true)]
@@ -196,7 +203,7 @@ pub enum Message {
 /// This enum represents the recipient of the PD message.
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
 #[c_api(prefix = "Pd", repr_c = true)]
-pub enum PdMessageRecipient {
+pub enum MessageRecipient {
     #[default]
     /// The OPM wants to retrieve the USB PD response message from the
     /// identified connector.
@@ -215,7 +222,7 @@ pub enum PdMessageRecipient {
 /// This enum represents the type of the PD response message.
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
 #[c_api(prefix = "Pd", repr_c = true)]
-pub enum PdMessageResponseType {
+pub enum MessageResponseType {
     #[default]
     /// Sink Capabilities Extended (Extended Message)
     SinkCapabilitiesExtended,

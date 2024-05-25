@@ -6,8 +6,8 @@
 
 use argh::FromArgs;
 
-use libtypec_rs::pd::PdMessageRecipient;
-use libtypec_rs::pd::PdMessageResponseType;
+use libtypec_rs::pd::MessageRecipient;
+use libtypec_rs::pd::MessageResponseType;
 use libtypec_rs::typec::OsBackends;
 use libtypec_rs::typec::TypecRs;
 use libtypec_rs::ucsi::GetAlternateModesRecipient;
@@ -118,8 +118,8 @@ fn main() {
 
         match typec.pd_message(
             connector_nr,
-            PdMessageRecipient::Sop,
-            PdMessageResponseType::DiscoverIdentity,
+            MessageRecipient::Sop,
+            MessageResponseType::DiscoverIdentity,
         ) {
             Ok(pd_message) => {
                 println!("Connector {connector_nr} SOP DiscoverIdentity PD Message");
@@ -143,8 +143,8 @@ fn main() {
 
         match typec.pd_message(
             connector_nr,
-            PdMessageRecipient::SopPrime,
-            PdMessageResponseType::DiscoverIdentity,
+            MessageRecipient::SopPrime,
+            MessageResponseType::DiscoverIdentity,
         ) {
             Ok(pd_message) => {
                 println!("Connector {connector_nr} SOP' DiscoverIdentity PD Message");

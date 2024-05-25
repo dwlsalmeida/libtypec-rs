@@ -8,8 +8,8 @@ use std::str::FromStr;
 
 use crate::backends;
 use crate::pd::Message;
-use crate::pd::PdMessageRecipient;
-use crate::pd::PdMessageResponseType;
+use crate::pd::MessageRecipient;
+use crate::pd::MessageResponseType;
 use crate::pd::Pdo;
 use crate::ucsi::AlternateMode;
 use crate::ucsi::CableProperty;
@@ -124,8 +124,8 @@ impl TypecRs {
     pub fn pd_message(
         &mut self,
         connector_nr: usize,
-        recipient: PdMessageRecipient,
-        response_type: PdMessageResponseType,
+        recipient: MessageRecipient,
+        response_type: MessageResponseType,
     ) -> Result<Message> {
         self.os_backend
             .pd_message(connector_nr, recipient, response_type)
@@ -217,11 +217,11 @@ impl TypecRs {
     /// The caller must ensure that out_capabilities is a valid pointer.
     extern "C" fn libtypec_rs_get_capabilities(
         &mut self,
-        out_capabilities: &mut Capability,
+        out_capabilities: &mut crate::ucsi::UcsiCapability,
     ) -> std::ffi::c_int {
         match self.capabilities() {
             Ok(cap) => {
-                *out_capabilities = cap;
+                *out_capabilities = cap.into();
                 0
             }
             Err(err) => -CError::from(err).0,
@@ -240,11 +240,11 @@ impl TypecRs {
     extern "C" fn libtypec_rs_get_conn_capabilities(
         &mut self,
         connector_nr: usize,
-        out_conn_capabilities: &mut ConnectorCapability,
+        out_conn_capabilities: &mut crate::ucsi::UcsiConnectorCapability,
     ) -> std::ffi::c_int {
         match self.connector_capabilties(connector_nr) {
             Ok(cap) => {
-                *out_conn_capabilities = cap;
+                *out_conn_capabilities = cap.into();
                 0
             }
             Err(err) => -CError::from(err).0,
@@ -268,14 +268,16 @@ impl TypecRs {
     /// `out_modes` at a later point.
     extern "C" fn libtypec_rs_get_alternate_modes(
         &mut self,
-        recipient: GetAlternateModesRecipient,
+        recipient: crate::ucsi::UcsiGetAlternateModesRecipient,
         connector_nr: usize,
-        out_modes: *mut *mut AlternateMode,
+        out_modes: *mut *mut crate::ucsi::UcsiAlternateMode,
         out_nmodes: &mut usize,
         out_mem_sz: &mut usize,
     ) -> std::ffi::c_int {
-        match self.alternate_modes(recipient, connector_nr) {
+        match self.alternate_modes(recipient.into(), connector_nr) {
             Ok(modes) => {
+                let modes: Vec<crate::ucsi::UcsiAlternateMode> =
+                    modes.into_iter().map(Into::into).collect();
                 *out_nmodes = modes.len();
                 *out_mem_sz = modes.capacity();
                 unsafe { *out_modes = modes.leak().as_mut_ptr() };
@@ -293,7 +295,7 @@ impl TypecRs {
     /// that were returned from a previous call to
     /// libtypec_rs_get_alternate_modes().
     extern "C" fn libtypec_rs_destroy_alternate_modes(
-        modes: *mut AlternateMode,
+        modes: *mut crate::ucsi::UcsiAlternateMode,
         nmodes: usize,
         mem_sz: usize,
     ) {
@@ -312,11 +314,11 @@ impl TypecRs {
     extern "C" fn libtypec_rs_get_cable_properties(
         &mut self,
         connector_nr: usize,
-        out_cable_properties: &mut CableProperty,
+        out_cable_properties: &mut crate::ucsi::UcsiCableProperty,
     ) -> std::ffi::c_int {
         match self.cable_properties(connector_nr) {
             Ok(props) => {
-                *out_cable_properties = props;
+                *out_cable_properties = props.into();
                 0
             }
             Err(err) => -CError::from(err).0,
@@ -335,11 +337,11 @@ impl TypecRs {
     extern "C" fn libtypec_rs_get_connector_status(
         &mut self,
         connector_nr: usize,
-        out_connector_status: &mut ConnectorStatus,
+        out_connector_status: &mut crate::ucsi::UcsiConnectorStatus,
     ) -> std::ffi::c_int {
         match self.connector_status(connector_nr) {
             Ok(status) => {
-                *out_connector_status = status;
+                *out_connector_status = status.into();
                 0
             }
             Err(err) => -CError::from(err).0,
@@ -363,11 +365,11 @@ impl TypecRs {
     extern "C" fn libtypec_rs_get_pd_message(
         &mut self,
         connector_nr: usize,
-        recipient: PdMessageRecipient,
-        response_type: PdMessageResponseType,
+        recipient: crate::pd::PdMessageRecipient,
+        response_type: crate::pd::PdMessageResponseType,
         out_pd_message: &mut crate::pd::PdMessage,
     ) -> std::ffi::c_int {
-        match self.pd_message(connector_nr, recipient, response_type) {
+        match self.pd_message(connector_nr, recipient.into(), response_type.into()) {
             Ok(msg) => {
                 *out_pd_message = msg.into();
                 0
@@ -400,10 +402,10 @@ impl TypecRs {
         partner_pdo: bool,
         pdo_offset: u32,
         nr_pdos: usize,
-        src_or_sink_pdos: PdoType,
-        source_capabilities_type: PdoSourceCapabilitiesType,
+        src_or_sink_pdos: crate::ucsi::UcsiPdoType,
+        source_capabilities_type: crate::ucsi::UcsiPdoSourceCapabilitiesType,
         revision: BcdWrapper,
-        out_pdos: *mut *mut Pdo,
+        out_pdos: *mut *mut crate::pd::PdPdo,
         out_npdos: &mut usize,
         out_mem_sz: &mut usize,
     ) -> std::ffi::c_int {
@@ -412,11 +414,12 @@ impl TypecRs {
             partner_pdo,
             pdo_offset,
             nr_pdos,
-            src_or_sink_pdos,
-            source_capabilities_type,
+            src_or_sink_pdos.into(),
+            source_capabilities_type.into(),
             revision,
         ) {
             Ok(pdos) => {
+                let pdos: Vec<crate::pd::PdPdo> = pdos.into_iter().map(Into::into).collect();
                 *out_npdos = pdos.len();
                 *out_mem_sz = pdos.capacity();
                 unsafe { *out_pdos = pdos.leak().as_mut_ptr() };
@@ -432,7 +435,11 @@ impl TypecRs {
     /// # Safety
     /// The caller must ensure that `pdos`, `npdos` and `mem_sz` are pointers
     /// that were returned from a previous call to libtypec_rs_get_pdos().
-    extern "C" fn libtypec_rs_destroy_pdos(pdos: *mut Pdo, npdos: usize, mem_sz: usize) {
+    extern "C" fn libtypec_rs_destroy_pdos(
+        pdos: *mut crate::pd::PdPdo,
+        npdos: usize,
+        mem_sz: usize,
+    ) {
         let _ = unsafe { Vec::from_raw_parts(pdos, npdos, mem_sz) };
     }
 }

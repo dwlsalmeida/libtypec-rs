@@ -11,8 +11,8 @@ use proc_macros::CApiWrapper;
 use proc_macros::Printf;
 use proc_macros::Snprintf;
 
-use crate::pd::PdMessageRecipient;
-use crate::pd::PdMessageResponseType;
+use crate::pd::MessageRecipient;
+use crate::pd::MessageResponseType;
 use crate::BcdWrapper;
 use crate::BitReader;
 use crate::Error;
@@ -23,10 +23,11 @@ use crate::ToBytes;
 /// See UCSI - Table A-2 Parameter Values
 pub const UCSI_MAX_NUM_ALT_MODE: usize = 128;
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Printf, Snprintf, N, Copy)]
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 /// See Table 6-24: GET_ALTERNATE_MODES Command.
 pub enum GetAlternateModesRecipient {
+    #[default]
     Connector = 0,
     // SOP
     Sop = 1,
@@ -36,16 +37,18 @@ pub enum GetAlternateModesRecipient {
     SopDoublePrime = 3,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Printf, Snprintf, N, Copy)]
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum PdoType {
+    #[default]
     Sink,
     Source,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, PartialEq, Printf, Snprintf, N, Copy)]
+#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
+#[c_api(prefix = "Ucsi", repr_c = true)]
 pub enum PdoSourceCapabilitiesType {
+    #[default]
     CurrentSupportedSourceCapabilities,
     AdvertisedCapabilities,
     MaximumSupportedSourceCapabilities,
@@ -130,9 +133,9 @@ pub enum Command {
         /// This field shall be set to the connector being queried.
         connector_nr: u32,
         /// This field indicates the recipient of the PD message.
-        recipient: PdMessageRecipient,
+        recipient: MessageRecipient,
         /// Response message type.
-        message_type: PdMessageResponseType,
+        message_type: MessageResponseType,
     },
 }
 
