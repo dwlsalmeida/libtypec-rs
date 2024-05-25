@@ -183,7 +183,7 @@ impl TypecRs {
     ///
     /// # Returns
     /// 0 on success, -errno on failure.
-    pub extern "C" fn libtypec_rs_new(
+    extern "C" fn libtypec_rs_new(
         backend: OsBackends,
         out_typec: *mut *mut Self,
     ) -> std::ffi::c_int {
@@ -205,7 +205,7 @@ impl TypecRs {
     /// # Safety
     /// Must be called with a pointer that was previously acquired from
     /// libtypec_rs_new().
-    pub extern "C" fn libtypec_rs_destroy(typec: &mut Self) {
+    extern "C" fn libtypec_rs_destroy(typec: &mut Self) {
         let _ = unsafe { Box::from_raw(typec) };
     }
 
@@ -215,7 +215,7 @@ impl TypecRs {
     ///
     /// # Safety
     /// The caller must ensure that out_capabilities is a valid pointer.
-    pub extern "C" fn libtypec_rs_get_capabilities(
+    extern "C" fn libtypec_rs_get_capabilities(
         &mut self,
         out_capabilities: &mut Capability,
     ) -> std::ffi::c_int {
@@ -237,7 +237,7 @@ impl TypecRs {
     ///
     /// # Safety
     /// The caller must ensure that out_conn_capabilities is a valid pointer.
-    pub extern "C" fn libtypec_rs_get_conn_capabilities(
+    extern "C" fn libtypec_rs_get_conn_capabilities(
         &mut self,
         connector_nr: usize,
         out_conn_capabilities: &mut ConnectorCapability,
@@ -266,7 +266,7 @@ impl TypecRs {
     /// are valid pointers. The caller must call
     /// libtypec_rs_destroy_alternate_modes to free the memory allocated for
     /// `out_modes` at a later point.
-    pub extern "C" fn libtypec_rs_get_alternate_modes(
+    extern "C" fn libtypec_rs_get_alternate_modes(
         &mut self,
         recipient: GetAlternateModesRecipient,
         connector_nr: usize,
@@ -292,7 +292,7 @@ impl TypecRs {
     /// The caller must ensure that `modes`, `nmodes` and `mem_sz` are pointers
     /// that were returned from a previous call to
     /// libtypec_rs_get_alternate_modes().
-    pub extern "C" fn libtypec_rs_destroy_alternate_modes(
+    extern "C" fn libtypec_rs_destroy_alternate_modes(
         modes: *mut AlternateMode,
         nmodes: usize,
         mem_sz: usize,
@@ -309,7 +309,7 @@ impl TypecRs {
     ///
     /// # Safety
     /// The caller must ensure that out_cable_properties is a valid pointer.
-    pub extern "C" fn libtypec_rs_get_cable_properties(
+    extern "C" fn libtypec_rs_get_cable_properties(
         &mut self,
         connector_nr: usize,
         out_cable_properties: &mut CableProperty,
@@ -332,7 +332,7 @@ impl TypecRs {
     ///
     /// # Safety
     /// The caller must ensure that out_connector_status is a valid pointer.
-    pub extern "C" fn libtypec_rs_get_connector_status(
+    extern "C" fn libtypec_rs_get_connector_status(
         &mut self,
         connector_nr: usize,
         out_connector_status: &mut ConnectorStatus,
@@ -360,7 +360,7 @@ impl TypecRs {
     ///
     /// # Safety
     /// The caller must ensure that out_connector_status is a valid pointer.
-    pub extern "C" fn libtypec_rs_get_pd_message(
+    extern "C" fn libtypec_rs_get_pd_message(
         &mut self,
         connector_nr: usize,
         recipient: PdMessageRecipient,
@@ -394,7 +394,7 @@ impl TypecRs {
     ///
     /// # Returns
     /// Returns 0 on success, -errno on failures.
-    pub extern "C" fn libtypec_rs_get_pdos(
+    extern "C" fn libtypec_rs_get_pdos(
         &mut self,
         connector_nr: usize,
         partner_pdo: bool,
@@ -432,7 +432,7 @@ impl TypecRs {
     /// # Safety
     /// The caller must ensure that `pdos`, `npdos` and `mem_sz` are pointers
     /// that were returned from a previous call to libtypec_rs_get_pdos().
-    pub extern "C" fn libtypec_rs_destroy_pdos(pdos: *mut Pdo, npdos: usize, mem_sz: usize) {
+    extern "C" fn libtypec_rs_destroy_pdos(pdos: *mut Pdo, npdos: usize, mem_sz: usize) {
         let _ = unsafe { Vec::from_raw_parts(pdos, npdos, mem_sz) };
     }
 }
