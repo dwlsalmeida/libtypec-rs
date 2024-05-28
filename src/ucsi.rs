@@ -551,7 +551,9 @@ impl FromBytes for CableProperty {
 #[derive(Clone, PartialEq, Default, CApiWrapper)]
 #[c_api(prefix = "Ucsi", repr_c = true)]
 pub struct AlternateMode {
+    #[c_api(no_prefix)]
     pub svid: [u32; 2],
+    #[c_api(no_prefix)]
     pub vdo: [u32; 2],
 }
 
@@ -579,9 +581,9 @@ impl std::fmt::Debug for AlternateMode {
     }
 }
 
+/// See UCSI - Table 6-29: GET_CAM_SUPPORTED Data
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
 #[c_api(prefix = "Ucsi", repr_c = true)]
-/// See UCSI - Table 6-29: GET_CAM_SUPPORTED Data
 pub struct CamSupported {
     /// Whether an alternate mode is supported.
     pub cam_supported: bool,
@@ -596,6 +598,7 @@ pub struct CurrentAlternatingModes {
     /// This is an offset into the list of Alternate Modes supported by the PPM.
     /// If the connector is not operating in an alternate mode, the PPM shall
     /// set this field to 0xFF.
+    #[c_api(no_prefix)]
     pub current_alternate_mode: [usize; UCSI_MAX_NUM_ALT_MODE],
 }
 

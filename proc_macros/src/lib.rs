@@ -1,9 +1,11 @@
 use darling::FromDeriveInput;
+use darling::FromField;
 use darling::FromVariant;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, ToTokens};
+use syn::Type;
 use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, Ident, Variant};
 
 #[proc_macro_derive(Printf)]
@@ -89,6 +91,16 @@ struct WrapperOpts {
     variant_prefix: Option<String>,
 }
 
+#[derive(Debug, FromField)]
+#[darling(attributes(c_api), forward_attrs)]
+struct FieldOpts {
+    ident: Option<Ident>,
+    attrs: Vec<syn::Attribute>,
+    ty: Type,
+    #[darling(default)]
+    no_prefix: bool,
+}
+
 /// Derive a C API wrapper for a struct or enum.
 ///
 /// Use `repr_c=true` to annotate the wrapper as repr(C). Only types that are
@@ -125,7 +137,24 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                     .iter()
                     .map(|Field { ident, .. }| ident.clone())
                     .collect();
-                let fields: Vec<_> = data.fields.iter().map(|f| quote! { #f }).collect();
+
+                let fields: Vec<_> = data
+                    .fields
+                    .iter()
+                    .map(|f| {
+                        let field_opt = FieldOpts::from_field(f).unwrap();
+                        let Field{ident, ty, .. } = f;
+                        let ty_string = quote! { #ty }.to_string();
+                        // Any non-primitive type is prefixed by default.
+                        if !is_primitive_type(&ty_string) && !field_opt.no_prefix {
+                            let new_ty_ident = format_ident!("{}{}", prefix, ty_string);
+                            let new_ty = quote! { #new_ty_ident };
+                            quote! { #ident: #new_ty }
+                        } else {
+                            quote! { #f }
+                        }
+                    })
+                    .collect();
 
                 quote! {
                     #[cfg(feature = "c_api")]
@@ -156,7 +185,8 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
             }
             Fields::Unnamed(fields) => {
                 let field_types: Vec<_> = fields.unnamed.iter().map(|f| &f.ty).collect();
-                let field_indices: Vec<_> = (0..fields.unnamed.len()).map(syn::Index::from).collect();
+                let field_indices: Vec<_> =
+                    (0..fields.unnamed.len()).map(syn::Index::from).collect();
 
                 quote! {
                     #[cfg(feature = "c_api")]
@@ -178,7 +208,6 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                         }
                     }
                 }
-
             }
             _ => panic!("Structs must have named fields or unnamed fields"),
         },
@@ -288,4 +317,12 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
 
     // panic!("{}", TokenStream::from(expanded).to_string());
     TokenStream::from(expanded)
+}
+
+fn is_primitive_type(ty_string: &str) -> bool {
+    let primitive_types = [
+        "bool", "char", "i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64",
+        "u128", "usize", "f32", "f64", "str", "String",
+    ];
+    primitive_types.contains(&ty_string)
 }
