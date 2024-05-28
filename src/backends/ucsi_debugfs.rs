@@ -195,11 +195,12 @@ impl OsBackend for UcsiDebugfsBackend {
         connector_nr: usize,
     ) -> Result<Vec<AlternateMode>> {
         let mut alternate_modes = vec![];
-
+        let mut offset = 0;
         loop {
             let cmd = Command::GetAlternateModes {
                 recipient,
                 connector_nr,
+                offset,
             };
 
             let response = self.execute(cmd)?;
@@ -209,6 +210,7 @@ impl OsBackend for UcsiDebugfsBackend {
 
             let mut bitreader = BitReader::new(Cursor::new(&response[..]));
             alternate_modes.push(AlternateMode::from_bytes(&mut bitreader)?);
+            offset += 1;
         }
 
         Ok(alternate_modes)

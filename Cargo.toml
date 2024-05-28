@@ -17,6 +17,8 @@ regex = "1.10.4"
 thiserror = "1.0.58"
 udev = { version = "0.8.0", features = ["hwdb"] }
 walkdir = "2.5.0"
+bitflags = "2.5.0"
+paste = "1.0.15"
 
 [dev-dependencies]
 mockall = "0.12.1"

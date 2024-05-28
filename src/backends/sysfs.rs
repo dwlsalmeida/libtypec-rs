@@ -137,12 +137,12 @@ pub mod sysfs_reader {
             let content = self.read_file()?;
             if content.contains("source") {
                 if content.contains("sink") {
-                    Ok(ConnectorCapabilityOperationMode::Drp)
+                    Ok(ConnectorCapabilityOperationMode::DRP)
                 } else {
-                    Ok(ConnectorCapabilityOperationMode::RpOnly)
+                    Ok(ConnectorCapabilityOperationMode::RP_ONLY)
                 }
             } else {
-                Ok(ConnectorCapabilityOperationMode::RdOnly)
+                Ok(ConnectorCapabilityOperationMode::RD_ONLY)
             }
         }
 
@@ -649,11 +649,11 @@ impl OsBackend for SysfsBackend {
         };
 
         match connector_capabilities.operation_mode {
-            ConnectorCapabilityOperationMode::Drp => {
+            ConnectorCapabilityOperationMode::DRP => {
                 connector_capabilities.provider = true;
                 connector_capabilities.consumer = true;
             }
-            ConnectorCapabilityOperationMode::RdOnly => {
+            ConnectorCapabilityOperationMode::RD_ONLY => {
                 connector_capabilities.consumer = true;
             }
             _ => {
@@ -1144,7 +1144,7 @@ mod tests {
             .return_once(|_| Ok(()));
         mock_reader
             .expect_read_opr()
-            .returning(|| Ok(ConnectorCapabilityOperationMode::Drp));
+            .returning(|| Ok(ConnectorCapabilityOperationMode::DRP));
 
         if crate::is_chrome_os() {
             let path0_pd = format!("{}/usb_power_delivery_revision", path0);
@@ -1164,7 +1164,7 @@ mod tests {
         // Check that we can get the connector capabilities.
         let actual = backend.connector_capabilties(0).unwrap();
         let mut expected = ConnectorCapability {
-            operation_mode: ConnectorCapabilityOperationMode::Drp,
+            operation_mode: ConnectorCapabilityOperationMode::DRP,
             provider: true,
             consumer: true,
             ..Default::default()

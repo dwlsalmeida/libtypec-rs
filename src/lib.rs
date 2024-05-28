@@ -43,7 +43,47 @@ pub type BitWriter<'a> = bitstream_io::BitWriter<Cursor<&'a mut [u8]>, LittleEnd
 pub type BitReader<'a> = bitstream_io::BitReader<Cursor<&'a [u8]>, LittleEndian>;
 pub type Result<T> = std::result::Result<T, crate::Error>;
 
-/// A trait that abstracts the platform-specific backend.
+#[macro_export]
+macro_rules! bitflags_wrapper {
+    (
+        $prefix:ident,
+        $(#[$outer:meta])*
+        $vis:vis struct $name:ident: $t:ty {
+            $($body:tt)*
+        }) => {
+        bitflags! {
+            $(#[$outer])*
+            /// cbindgen:ignore
+            $vis struct $name: $t {
+                $($body)*
+            }
+        }
+
+        #[cfg(feature="c_api")]
+        paste::paste! {
+            bitflags! {
+                #[repr(transparent)]
+                $vis struct [< $prefix $name >]: $t {
+                    $($body)*
+                }
+            }
+
+            impl From<$name> for [< $prefix $name >] {
+                fn from(original: $name) -> Self {
+                    Self::from_bits_truncate(original.bits())
+                }
+            }
+
+            impl From<[< $prefix $name >]> for $name {
+                fn from(prefixed: [< $prefix $name >]) -> Self {
+                    Self::from_bits_truncate(prefixed.bits())
+                }
+            }
+        }
+    };
+}
+
+// A trait that abstracts the platform-specific backend.
 pub trait OsBackend {
     fn capabilities(&mut self) -> Result<Capability>;
 

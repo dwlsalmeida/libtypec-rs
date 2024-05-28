@@ -56,7 +56,7 @@ fn main() {
         println!("{:#?}", conn_capability);
         println!("");
 
-        let conn_pdo = typec
+        match typec
             .pdos(
                 connector_nr,
                 false,
@@ -65,14 +65,22 @@ fn main() {
                 PdoType::Source,
                 PdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
                 capabilities.pd_version,
-            )
-            .expect("Failed to get Source PDOs");
+            ) {
+                Ok(conn_pdo) => {
+                    println!("Connector {connector_nr} Source PDOs");
+                    println!("{:#?}", conn_pdo);
+                    println!("");
+                }
+                Err(Error::UnsupportedUsbRevision{
+                    revision,
+                    ..
+                }) => println!("Unsupported USB revision {:?} in Source PDOs", revision),
+                Err(e) => panic!("Failed to get source PDOs for {connector_nr}: {:?}", e)
+            }
 
-        println!("Connector {connector_nr} Source PDOs");
-        println!("{:#?}", conn_pdo);
-        println!("");
 
-        let conn_pdo = typec
+
+        match typec
             .pdos(
                 connector_nr,
                 false,
@@ -81,12 +89,19 @@ fn main() {
                 PdoType::Sink,
                 PdoSourceCapabilitiesType::CurrentSupportedSourceCapabilities,
                 capabilities.pd_version,
-            )
-            .expect("Failed to get Sink PDOs");
-
-        println!("Connector {connector_nr} Sink PDOs");
-        println!("{:#?}", conn_pdo);
-        println!("");
+            ) {
+                Ok(conn_pdo) => {
+                    println!("Connector {connector_nr} Sink PDOs");
+                    println!("{:#?}", conn_pdo);
+                    println!("");
+                }
+                Err(Error::NotSupported { .. }) => {},
+                Err(Error::UnsupportedUsbRevision{
+                    revision,
+                    ..
+                }) => println!("Unsupported USB revision {:?} in sink PDOs", revision),
+                Err(e) => panic!("Failed to get sink PDOs for {connector_nr}: {:?}", e)
+            }
 
         match typec.cable_properties(connector_nr) {
             Ok(cable_props) => {
@@ -171,7 +186,11 @@ fn main() {
                 println!("Partner PDO data (Source)");
                 println!("{:#?}", conn_pdo);
             }
-            Err(Error::NotSupported { .. }) => {}
+                Err(Error::NotSupported { .. }) => {},
+                Err(Error::UnsupportedUsbRevision{
+                    revision,
+                    ..
+                }) => println!("Unsupported USB revision {:?} in source PDOs", revision),
             Err(e) => panic!("Failed to get Source PDOs {:?}", e),
         }
         println!("");
@@ -189,7 +208,11 @@ fn main() {
                 println!("Partner PDO data (Sink)");
                 println!("{:#?}", conn_pdo);
             }
-            Err(Error::NotSupported { .. }) => {}
+            Err(Error::NotSupported { .. }) => {},
+            Err(Error::UnsupportedUsbRevision{
+                revision,
+                ..
+            }) => println!("Unsupported USB revision {:?} in Sink PDOs", revision),
             Err(e) => panic!("Failed to get Sink PDOs {:?}", e),
         }
         println!("");

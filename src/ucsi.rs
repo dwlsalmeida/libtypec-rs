@@ -10,6 +10,7 @@ use enumn::N;
 use proc_macros::CApiWrapper;
 use proc_macros::Printf;
 use proc_macros::Snprintf;
+use bitflags::bitflags;
 
 use crate::pd::MessageRecipient;
 use crate::pd::MessageResponseType;
@@ -19,6 +20,7 @@ use crate::Error;
 use crate::FromBytes;
 use crate::Result;
 use crate::ToBytes;
+use crate::bitflags_wrapper;
 
 /// See UCSI - Table A-2 Parameter Values
 pub const UCSI_MAX_NUM_ALT_MODE: usize = 128;
@@ -73,6 +75,8 @@ pub enum Command {
         recipient: GetAlternateModesRecipient,
         /// This field shall be set to the connector being queried.
         connector_nr: usize,
+        /// The offset to query.
+        offset: usize,
     },
     /// This command is used to get the list of Alternate Modes that are
     /// currently supported on the connector identified by this command. This
@@ -170,6 +174,7 @@ impl ToBytes for Command {
             Command::GetAlternateModes {
                 recipient,
                 connector_nr,
+                offset,
             } => {
                 // Data length
                 bw.write(8, 0)?;
@@ -179,6 +184,7 @@ impl ToBytes for Command {
                 bw.write(7, *connector_nr as u32 + 1)?;
                 // Reserved
                 bw.write(1, 0)?;
+                bw.write(8, *offset as u32)?;
             }
             Command::GetCamSupported { connector_nr } => {
                 // Data length
@@ -510,7 +516,7 @@ impl FromBytes for CableProperty {
                 field: "directionality".into(),
                 value: directionality,
                 #[cfg(feature = "backtrace")]
-                backtrace: std::backtrace::capture(),
+                backtrace: std::backtrace::Backtrace::capture(),
             })?;
         let plug_end_type = reader.read::<u32>(2)?;
         let plug_end_type =
@@ -601,19 +607,20 @@ impl Default for CurrentAlternatingModes {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
-/// Connector capability data extended operation mode.
-pub enum ConnectorCapabilityOperationMode {
-    #[default]
-    RpOnly,
-    RdOnly,
-    Drp,
-    AnalogAudioAccessoryMode,
-    DebugAccessoryMode,
-    Usb2,
-    Usb3,
-    AlternateMode,
+bitflags_wrapper! {
+    Ucsi,
+    #[derive(Debug, Clone, PartialEq, Default, Copy)]
+    /// Connector capability data extended operation mode.
+    pub struct ConnectorCapabilityOperationMode: u8 {
+        const RP_ONLY = 0b00000001;
+        const RD_ONLY = 0b00000010;
+        const DRP = 0b00000100;
+        const ANALOG_AUDIO_ACCESSORY_MODE = 0b00001000;
+        const DEBUG_ACCESSORY_MODE = 0b00010000;
+        const USB2 = 0b00100000;
+        const USB3 = 0b01000000;
+        const ALTERNATE_MODE = 0b10000000;
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
@@ -681,12 +688,12 @@ pub struct ConnectorCapability {
 
 impl FromBytes for ConnectorCapability {
     fn from_bytes(reader: &mut BitReader) -> Result<Self> {
-        let operation_mode_value = reader.read::<u32>(8)?;
+        let operation_mode_value = reader.read::<u8>(8)?;
         let operation_mode =
-            ConnectorCapabilityOperationMode::n(operation_mode_value).ok_or_else(|| {
+            ConnectorCapabilityOperationMode::from_bits(operation_mode_value).ok_or_else(|| {
                 Error::ParseError {
                     field: "operation_mode".into(),
-                    value: operation_mode_value,
+                    value: operation_mode_value.into(),
                     #[cfg(feature = "backtrace")]
                     backtrace: std::backtrace::Backtrace::capture(),
                 }

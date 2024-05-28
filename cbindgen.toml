@@ -13,6 +13,9 @@ prefix_with_name = true
 crates = ["libtypec-rs"]
 features = ["c_api"]
 
+[macro_expansion]
+bitflags = true
+
 [export.rename]
 "Millivolt" = "TypeCRs_Millivolt"
 "Milliamp" = "TypeCRs_Milliamp"

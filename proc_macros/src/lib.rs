@@ -89,6 +89,14 @@ struct WrapperOpts {
     variant_prefix: Option<String>,
 }
 
+/// Derive a C API wrapper for a struct or enum.
+///
+/// Use `repr_c=true` to annotate the wrapper as repr(C). Only types that are
+/// strictly composed of other repr(C) types should have `repr_c=true`. Types
+/// that are not marked repr(C) will be forward declared by cbindgen.
+///
+/// A prefix must be used to uniquely identify the new type, as cbindgen is not
+/// aware of Rust namespaces.
 #[proc_macro_derive(CApiWrapper, attributes(c_api))]
 pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -110,41 +118,70 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
         quote!()
     };
     let expanded = match &input.data {
-        Data::Struct(data) => {
-            let field_names: Vec<_> = data
-                .fields
-                .iter()
-                .map(|Field { ident, .. }| ident.clone())
-                .collect();
-            let fields: Vec<_> = data.fields.iter().map(|f| quote! { #f }).collect();
+        Data::Struct(data) => match &data.fields {
+            Fields::Named(_) => {
+                let field_names: Vec<_> = data
+                    .fields
+                    .iter()
+                    .map(|Field { ident, .. }| ident.clone())
+                    .collect();
+                let fields: Vec<_> = data.fields.iter().map(|f| quote! { #f }).collect();
 
-            quote! {
-                #[cfg(feature = "c_api")]
-                #repr_c_token
-                #[derive(Debug, Clone, PartialEq, Printf, Snprintf)]
-                pub(crate) struct #new_name {
-                    #(#fields),*
-                }
+                quote! {
+                    #[cfg(feature = "c_api")]
+                    #repr_c_token
+                    #[derive(Debug, Clone, PartialEq, Printf, Snprintf)]
+                    pub(crate) struct #new_name {
+                        #(#fields),*
+                    }
 
-                #[cfg(feature = "c_api")]
-                impl From<#name> for #new_name {
-                    fn from(item: #name) -> Self {
-                        #new_name {
-                            #(#field_names: item.#field_names),*
+                    #[cfg(feature = "c_api")]
+                    impl From<#name> for #new_name {
+                        fn from(item: #name) -> Self {
+                            #new_name {
+                                #(#field_names: item.#field_names),*
+                            }
                         }
                     }
-                }
 
-                #[cfg(feature = "c_api")]
-                impl From<#new_name> for #name {
-                    fn from(item: #new_name) -> Self {
-                        #name {
-                            #(#field_names: item.#field_names),*
+                    #[cfg(feature = "c_api")]
+                    impl From<#new_name> for #name {
+                        fn from(item: #new_name) -> Self {
+                            #name {
+                                #(#field_names: item.#field_names),*
+                            }
                         }
                     }
                 }
             }
-        }
+            Fields::Unnamed(fields) => {
+                let field_types: Vec<_> = fields.unnamed.iter().map(|f| &f.ty).collect();
+                let field_indices: Vec<_> = (0..fields.unnamed.len()).map(syn::Index::from).collect();
+
+                quote! {
+                    #[cfg(feature = "c_api")]
+                    #repr_c_token
+                    #[derive(Debug, Clone, PartialEq, Printf, Snprintf)]
+                    pub(crate) struct #new_name(#(#field_types),*)
+
+                    #[cfg(feature = "c_api")]
+                    impl From<#name> for #new_name {
+                        fn from(item: #name) -> Self {
+                            #new_name(#(item.#field_indices),*)
+                        }
+                    }
+
+                    #[cfg(feature = "c_api")]
+                    impl From<#new_name> for #name {
+                        fn from(item: #new_name) -> Self {
+                            #name(#(item.#field_indices),*)
+                        }
+                    }
+                }
+
+            }
+            _ => panic!("Structs must have named fields or unnamed fields"),
+        },
         Data::Enum(data) => {
             let variants: Vec<TokenStream2> = data
                 .variants
@@ -157,9 +194,6 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
 
                     let variant_prefix = opts.variant_prefix.unwrap_or_else(|| prefix.clone());
                     let ident = variant.ident.clone();
-                    // // panic!("{:?}", ident);
-                    // let new_ty_ident = format_ident!("{}{}", variant_prefix.trim(), ident);
-                    // let new_ty = quote! { #new_ty_ident };
 
                     match &variant.fields {
                         Fields::Unit => quote! { #ident },
