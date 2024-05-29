@@ -43,39 +43,62 @@ pub type BitWriter<'a> = bitstream_io::BitWriter<Cursor<&'a mut [u8]>, LittleEnd
 pub type BitReader<'a> = bitstream_io::BitReader<Cursor<&'a [u8]>, LittleEndian>;
 pub type Result<T> = std::result::Result<T, crate::Error>;
 
+/// Wrap a bitflags! invocation.
+///
+/// cbindgen does not support both parse.expand *and* bitflags=true, because it
+/// will also expand the bitflags macro. We have our own wrapper instead.
+///
+/// This will give Rust users a nice, idiomatic API with the bitflags crate,
+/// while giving C users a typedef and #defines.
+///
+/// A module is used to gate the constants to pub(crate).
 #[macro_export]
 macro_rules! bitflags_wrapper {
     (
         $prefix:ident,
         $(#[$outer:meta])*
         $vis:vis struct $name:ident: $t:ty {
-            $($body:tt)*
+            $(
+                const $flag:ident = $value:expr;
+            )*
         }) => {
         bitflags::bitflags! {
             $(#[$outer])*
+            /// cbindgen:ignore
             $vis struct $name: $t {
-                $($body)*
+                $(
+                    const $flag = $value;
+                )*
             }
         }
 
-        #[cfg(feature="c_api")]
         paste::paste! {
-            bitflags::bitflags! {
-                $(#[$outer])*
-                $vis struct [< $prefix $name >]: $t {
-                    $($body)*
-                }
+            #[repr(transparent)]
+            $(#[$outer])*
+            #[cfg(feature="c_api")]
+            pub(crate) struct [< $prefix $name >] {
+                bits: $t,
             }
 
+            #[cfg(feature="c_api")]
+            pub(crate) mod [< $prefix:snake:lower _ $name:snake:lower _ flags >] {
+                $(
+                    #[allow(dead_code)]
+                    pub const [< $prefix:snake:upper _ $name:snake:upper _ $flag  >]: $t = $value;
+                )*
+            }
+
+            #[cfg(feature="c_api")]
             impl From<$name> for [< $prefix $name >] {
                 fn from(original: $name) -> Self {
-                    Self::from_bits_truncate(original.bits())
+                    Self { bits: original.bits() }
                 }
             }
 
+            #[cfg(feature="c_api")]
             impl From<[< $prefix $name >]> for $name {
                 fn from(prefixed: [< $prefix $name >]) -> Self {
-                    Self::from_bits_truncate(prefixed.bits())
+                    Self::from_bits_truncate(prefixed.bits)
                 }
             }
         }
