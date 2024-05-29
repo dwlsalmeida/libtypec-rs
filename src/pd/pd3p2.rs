@@ -23,17 +23,72 @@ use crate::pd::pd3p2::vdo::IdHeader;
 use crate::pd::pd3p2::vdo::Product;
 use crate::pd::pd3p2::vdo::ProductType;
 
+#[cfg(feature = "c_api")]
+pub(crate) mod c {
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoCertStat;
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoIdHeader;
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoProduct;
+    pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoProductType;
+    pub(crate) use crate::pd::PdVdmHeader;
+}
+
+#[cfg(feature = "c_api")]
+pub(crate) use c::*;
+
 pub mod vdo;
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c = true, manual_from_impl)]
 /// The response to a Discover Identity command.
 pub struct DiscoverIdentityResponse {
+    #[c_api(rename_type = "PdVdmHeader")]
     pub header: VdmHeader,
+    #[c_api(rename_type = "Pd3p2VdoIdHeader")]
     pub id_header_vdo: IdHeader,
+    #[c_api(rename_type = "Pd3p2VdoCertStat")]
     pub cert_stat: CertStat,
+    #[c_api(rename_type = "Pd3p2VdoProduct")]
     pub product_vdo: Product,
+    #[c_api(rename_type = "[Pd3p2VdoProductType; 3]")]
     pub product_type_vdo: [ProductType; 3],
+}
+
+#[cfg(feature = "c_api")]
+impl From<Pd3p2DiscoverIdentityResponse> for DiscoverIdentityResponse {
+    fn from(value: Pd3p2DiscoverIdentityResponse) -> Self {
+        Self {
+            header: value.header.into(),
+            id_header_vdo: value.id_header_vdo.into(),
+            cert_stat: value.cert_stat.into(),
+            product_vdo: value.product_vdo.into(),
+            product_type_vdo: value
+                .product_type_vdo
+                .into_iter()
+                .map(ProductType::from)
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap(),
+        }
+    }
+}
+
+#[cfg(feature = "c_api")]
+impl From<DiscoverIdentityResponse> for Pd3p2DiscoverIdentityResponse {
+    fn from(value: DiscoverIdentityResponse) -> Self {
+        Self {
+            header: value.header.into(),
+            id_header_vdo: value.id_header_vdo.into(),
+            cert_stat: value.cert_stat.into(),
+            product_vdo: value.product_vdo.into(),
+            product_type_vdo: value
+                .product_type_vdo
+                .into_iter()
+                .map(Pd3p2VdoProductType::from)
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
@@ -233,7 +288,9 @@ pub struct SourceCapabilitiesExtended {
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
 #[c_api(prefix = "Pd3p2", repr_c = true)]
 pub struct BatteryCapData {
+    #[c_api(no_prefix)]
     pub batteries_fixed: [u32; 4],
+    #[c_api(no_prefix)]
     pub batteries_hotswappable: [u32; 4],
 }
 

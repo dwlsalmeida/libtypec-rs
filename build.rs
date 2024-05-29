@@ -20,8 +20,6 @@ fn run_cbindgen(out_dir: &String, target_dir: &std::path::Path) {
     cbindgen::Builder::new()
         .with_crate(crate_dir)
         .with_config(config)
-        .with_language(cbindgen::Language::C)
-        .with_parse_expand(&["libtypec-rs"])
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file("target/include/libtypec-rs.h");

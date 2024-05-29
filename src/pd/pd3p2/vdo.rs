@@ -378,6 +378,7 @@ pub enum IdHeaderConnectorType {
 #[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
 pub struct IdHeader {
     /// Null-terminated vendor string.
+    #[c_api(no_prefix)]
     pub vendor: [u8; 32],
     /// USB Communications Capable as USB Host
     pub usb_host_capability: bool,

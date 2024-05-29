@@ -51,9 +51,8 @@ macro_rules! bitflags_wrapper {
         $vis:vis struct $name:ident: $t:ty {
             $($body:tt)*
         }) => {
-        bitflags! {
+        bitflags::bitflags! {
             $(#[$outer])*
-            /// cbindgen:ignore
             $vis struct $name: $t {
                 $($body)*
             }
@@ -61,8 +60,8 @@ macro_rules! bitflags_wrapper {
 
         #[cfg(feature="c_api")]
         paste::paste! {
-            bitflags! {
-                #[repr(transparent)]
+            bitflags::bitflags! {
+                $(#[$outer])*
                 $vis struct [< $prefix $name >]: $t {
                     $($body)*
                 }

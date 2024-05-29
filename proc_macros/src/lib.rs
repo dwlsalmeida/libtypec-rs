@@ -1,5 +1,6 @@
 use darling::FromDeriveInput;
 use darling::FromField;
+use darling::FromMeta;
 use darling::FromVariant;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -89,16 +90,19 @@ struct WrapperOpts {
     prefix: Option<String>,
     repr_c: Option<bool>,
     variant_prefix: Option<String>,
+    #[darling(default)]
+    manual_from_impl: bool,
 }
 
 #[derive(Debug, FromField)]
-#[darling(attributes(c_api), forward_attrs)]
+#[darling(attributes(c_api))]
 struct FieldOpts {
     ident: Option<Ident>,
     attrs: Vec<syn::Attribute>,
     ty: Type,
     #[darling(default)]
     no_prefix: bool,
+    rename_type: Option<String>,
 }
 
 /// Derive a C API wrapper for a struct or enum.
@@ -143,32 +147,28 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                     .iter()
                     .map(|f| {
                         let field_opt = FieldOpts::from_field(f).unwrap();
-                        let Field{ident, ty, .. } = f;
+                        let Field { ident, ty, .. } = f;
                         let ty_string = quote! { #ty }.to_string();
                         // Any non-primitive type is prefixed by default.
-                        if !is_primitive_type(&ty_string) && !field_opt.no_prefix {
+                        if let Some(new_name) = field_opt.rename_type {
+                            let new_name = syn::Type::from_string(&new_name).unwrap();
+                            quote! {#ident: #new_name }
+                        } else if !is_whitelisted_type(&ty_string) && !field_opt.no_prefix {
                             let new_ty_ident = format_ident!("{}{}", prefix, ty_string);
                             let new_ty = quote! { #new_ty_ident };
                             quote! { #ident: #new_ty }
                         } else {
-                            quote! { #f }
+                            quote! { #ident: #ty }
                         }
                     })
                     .collect();
 
-                quote! {
-                    #[cfg(feature = "c_api")]
-                    #repr_c_token
-                    #[derive(Debug, Clone, PartialEq, Printf, Snprintf)]
-                    pub(crate) struct #new_name {
-                        #(#fields),*
-                    }
-
+                let from_impl = quote! {
                     #[cfg(feature = "c_api")]
                     impl From<#name> for #new_name {
                         fn from(item: #name) -> Self {
                             #new_name {
-                                #(#field_names: item.#field_names),*
+                                #(#field_names: item.#field_names.into()),*
                             }
                         }
                     }
@@ -177,8 +177,30 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                     impl From<#new_name> for #name {
                         fn from(item: #new_name) -> Self {
                             #name {
-                                #(#field_names: item.#field_names),*
+                                #(#field_names: item.#field_names.into()),*
                             }
+                        }
+                    }
+                };
+
+                if !opts.manual_from_impl {
+                    quote! {
+                        #[cfg(feature = "c_api")]
+                        #repr_c_token
+                        #[derive(Debug, Clone, PartialEq, Printf, Snprintf)]
+                        pub(crate) struct #new_name {
+                            #(#fields),*
+                        }
+
+                        #from_impl
+                    }
+                } else {
+                    quote! {
+                        #[cfg(feature = "c_api")]
+                        #repr_c_token
+                        #[derive(Debug, Clone, PartialEq, Printf, Snprintf)]
+                        pub(crate) struct #new_name {
+                            #(#fields),*
                         }
                     }
                 }
@@ -315,14 +337,34 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
         _ => panic!("Only works on structs and enums"),
     };
 
-    // panic!("{}", TokenStream::from(expanded).to_string());
     TokenStream::from(expanded)
 }
 
-fn is_primitive_type(ty_string: &str) -> bool {
-    let primitive_types = [
-        "bool", "char", "i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64",
-        "u128", "usize", "f32", "f64", "str", "String",
+fn is_whitelisted_type(ty_string: &str) -> bool {
+    let whitelisted_types = [
+        "bool",
+        "char",
+        "i8",
+        "i16",
+        "i32",
+        "i64",
+        "i128",
+        "isize",
+        "u8",
+        "u16",
+        "u32",
+        "u64",
+        "u128",
+        "usize",
+        "f32",
+        "f64",
+        "str",
+        "String",
+        "BcdWrapper",
+        "Milliohm",
+        "Millivolt",
+        "Milliamp",
+        "Milliwatt",
     ];
-    primitive_types.contains(&ty_string)
+    whitelisted_types.contains(&ty_string)
 }
