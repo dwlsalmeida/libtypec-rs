@@ -713,11 +713,11 @@ impl OsBackend for SysfsBackend {
         response_type: MessageResponseType,
     ) -> Result<Message> {
         match response_type {
-            // PdMessageResponseType::DiscoverIdentity => {
-            //     Ok(PdMessage::Pd3p2DiscoverIdentityResponse(
-            //         self.reader.discover_identity(connector_nr, recipient)?,
-            //     ))
-            // }
+            MessageResponseType::DiscoverIdentity => {
+                Ok(Message::Pd3p2DiscoverIdentityResponse(
+                    self.reader.discover_identity(connector_nr, recipient)?,
+                ))
+            }
             _ => Err(Error::NotSupported {
                 #[cfg(feature = "backtrace")]
                 backtrace: std::backtrace::Backtrace::capture(),
