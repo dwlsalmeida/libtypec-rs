@@ -6,14 +6,13 @@ fn main() {
         let profile = std::env::var("PROFILE").unwrap();
         let target_dir = std::path::Path::new("target").join(profile);
 
-        run_cbindgen(&out_dir, &target_dir);
-        // build_c_examples(&target_dir);
+        run_cbindgen();
         // generate_pkg_config(&out_dir, &target_dir);
     }
 }
 
 #[cfg(feature = "c_api")]
-fn run_cbindgen(out_dir: &String, target_dir: &std::path::Path) {
+fn run_cbindgen() {
     let crate_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
 
     let config = cbindgen::Config::from_file("cbindgen.toml").unwrap();
@@ -23,16 +22,6 @@ fn run_cbindgen(out_dir: &String, target_dir: &std::path::Path) {
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file("target/include/libtypec-rs.h");
-}
-
-#[cfg(feature = "c_api")]
-fn build_c_examples(target_dir: &std::path::Path) {
-    cc::Build::new()
-        .file("examples/c/lstypec.c")
-        .include(target_dir)
-        .compile("c_examples_lstypec");
-
-    println!("cargo::rerun-if-changed=examples/c/lstypec.c");
 }
 
 #[cfg(feature = "c_api")]

@@ -30,7 +30,7 @@ cargo-deb = "2.1.0"
 
 
 [workspace]
-members = ["proc_macros"]
+members = ["proc_macros", "c_examples"]
 
 [features]
 c_api = []
@@ -40,11 +40,6 @@ backtrace = []
 name = "libtypec_rs"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
-
-[[example]]
-name = "c_example_lstypec"
-path = "examples/c_example_lstypec.rs"
-required-features = ["c_api"]
 
 [package.metadata.deb]
 maintainer = "Rajaram Regupathy <rajaram.regupathy@gmail.com>"

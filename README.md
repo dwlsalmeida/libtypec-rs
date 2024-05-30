@@ -48,19 +48,6 @@ To debug errors, enable the `backtrace` feature and set the `RUST_BACKTRACE` var
 RUST_BACKTRACE=1 cargo run --bin lstypec --features backtrace
 ```
 
-## Examples
-`c_example_lstypec` - meant as a guide for the C API, depends on the `c_api`feature.
-
-Run with
-```
-cargo run --example c_example_lstypec --features c_api -- --backend sysfs
-```
-
-or:
-
-```
-cargo run --example c_example_lstypec --features c_api -- --backend linux_ucsi
-```
 
 ## Dependencies
 - `pkg-config`
