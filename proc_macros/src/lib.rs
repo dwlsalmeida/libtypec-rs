@@ -1,20 +1,24 @@
 use darling::FromDeriveInput;
 use darling::FromField;
 use darling::FromMeta;
-use darling::FromVariant;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote, ToTokens};
-use syn::Type;
-use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, Ident, Variant};
+use quote::format_ident;
+use quote::quote;
+use syn::parse_macro_input;
+use syn::Data;
+use syn::DeriveInput;
+use syn::Field;
+use syn::Fields;
+use syn::Ident;
+use syn::Variant;
 
-#[derive(Debug, FromDeriveInput, FromVariant)]
+#[derive(Debug, FromDeriveInput)]
 #[darling(attributes(c_api))]
 struct WrapperOpts {
     ident: Ident,
-    attrs: Vec<syn::Attribute>,
-    prefix: Option<String>,
-    repr_c: Option<bool>,
+    prefix: String,
+    repr_c: bool,
     #[darling(default)]
     manual_from_impl: bool,
 }
@@ -22,9 +26,6 @@ struct WrapperOpts {
 #[derive(Debug, FromField)]
 #[darling(attributes(c_api))]
 struct FieldOpts {
-    ident: Option<Ident>,
-    attrs: Vec<syn::Attribute>,
-    ty: Type,
     #[darling(default)]
     no_prefix: bool,
     rename_type: Option<String>,
@@ -32,12 +33,15 @@ struct FieldOpts {
 
 /// Derive a C API wrapper for a struct or enum.
 ///
-/// Use `repr_c=true` to annotate the wrapper as repr(C). Only types that are
+/// Use `repr_c` to annotate the wrapper as repr(C). Only types that are
 /// strictly composed of other repr(C) types should have `repr_c=true`. Types
 /// that are not marked repr(C) will be forward declared by cbindgen.
 ///
 /// A prefix must be used to uniquely identify the new type, as cbindgen is not
 /// aware of Rust namespaces.
+///
+/// The wrappers can be converted from/to its native Rust types with from() and
+/// into().
 #[proc_macro_derive(CApiWrapper, attributes(c_api))]
 pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -47,17 +51,16 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
     };
 
     let name = &opts.ident;
+    let new_name = Ident::new(&format!("{}{}", &opts.prefix, name), name.span());
 
-    let prefix = opts
-        .prefix
-        .expect("Must have a prefix, Cbindgen does not support namespaces");
-    let new_name = Ident::new(&format!("{}{}", prefix, name), name.span());
-
-    let repr_c_token = if opts.repr_c.unwrap_or(false) {
+    let repr_c_token = if opts.repr_c {
         quote!(#[repr(C)])
     } else {
         quote!()
     };
+
+    let derives = quote!(#[derive(Debug, Clone, PartialEq)]);
+
     let expanded = match &input.data {
         Data::Struct(data) => match &data.fields {
             Fields::Named(_) => {
@@ -70,22 +73,7 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                 let fields: Vec<_> = data
                     .fields
                     .iter()
-                    .map(|f| {
-                        let field_opt = FieldOpts::from_field(f).unwrap();
-                        let Field { ident, ty, .. } = f;
-                        let ty_string = quote! { #ty }.to_string();
-                        // Any non-primitive type is prefixed by default.
-                        if let Some(new_name) = field_opt.rename_type {
-                            let new_name = syn::Type::from_string(&new_name).unwrap();
-                            quote! {#ident: #new_name }
-                        } else if !is_whitelisted_type(&ty_string) && !field_opt.no_prefix {
-                            let new_ty_ident = format_ident!("{}{}", prefix, ty_string);
-                            let new_ty = quote! { #new_ty_ident };
-                            quote! { #ident: #new_ty }
-                        } else {
-                            quote! { #ident: #ty }
-                        }
-                    })
+                    .map(|f| prefix_struct_field_types(&opts, f))
                     .collect();
 
                 let from_impl = quote! {
@@ -112,7 +100,7 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                     quote! {
                         #[cfg(feature = "c_api")]
                         #repr_c_token
-                        #[derive(Debug, Clone, PartialEq)]
+                        #derives
                         pub(crate) struct #new_name {
                             #(#fields),*
                         }
@@ -123,7 +111,7 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                     quote! {
                         #[cfg(feature = "c_api")]
                         #repr_c_token
-                        #[derive(Debug, Clone, PartialEq)]
+                        #derives
                         pub(crate) struct #new_name {
                             #(#fields),*
                         }
@@ -131,14 +119,18 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                 }
             }
             Fields::Unnamed(fields) => {
-                let field_types: Vec<_> = fields.unnamed.iter().map(|f| &f.ty).collect();
+                let field_types: Vec<_> = fields
+                    .unnamed
+                    .iter()
+                    .map(|f| prefix_struct_field_types(&opts, f))
+                    .collect();
                 let field_indices: Vec<_> =
                     (0..fields.unnamed.len()).map(syn::Index::from).collect();
 
                 quote! {
                     #[cfg(feature = "c_api")]
                     #repr_c_token
-                    #[derive(Debug, Clone, PartialEq)]
+                    #derives
                     pub(crate) struct #new_name(#(#field_types),*)
 
                     #[cfg(feature = "c_api")]
@@ -156,44 +148,13 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                     }
                 }
             }
-            _ => panic!("Structs must have named fields or unnamed fields"),
+            _ => panic!("Unit structs not supported"),
         },
         Data::Enum(data) => {
             let variants: Vec<TokenStream2> = data
                 .variants
                 .iter()
-                .map(|variant| {
-                    let ident = variant.ident.clone();
-
-                    match &variant.fields {
-                        Fields::Unit => quote! { #ident },
-                        Fields::Unnamed(fields) => {
-                            let fields: Vec<_> = fields
-                                .unnamed
-                                .iter()
-                                .map(|field| {
-                                    let inner_data_type = &field.ty;
-                                    quote! { c_api::#inner_data_type }
-                                })
-                                .collect();
-                            quote! { #ident(#(#fields),*) }
-                        }
-                        Fields::Named(fields) => {
-                            let fields: Vec<_> = fields
-                                .named
-                                .iter()
-                                .map(|Field { ident, ty, .. }| {
-                                    let ident = match ident {
-                                        Some(ident) => ident,
-                                        None => return quote! { c_api::#ty },
-                                    };
-                                    quote! { #ident: #ty }
-                                })
-                                .collect();
-                            quote! { #ident { #(#fields),* } }
-                        }
-                    }
-                })
+                .map(prefix_enum_variants)
                 .collect();
 
             let from_old_match_arms: Vec<_> = data
@@ -217,7 +178,7 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
             quote! {
                     #[cfg(feature = "c_api")]
                     #repr_c_token
-                    #[derive(Debug, Clone, PartialEq)]
+                    #derives
                     pub(crate) enum #new_name {
                         #(#variants),*
                     }
@@ -248,6 +209,7 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+// These types are not prefixed.
 fn is_whitelisted_type(ty_string: &str) -> bool {
     let whitelisted_types = [
         "bool",
@@ -275,4 +237,60 @@ fn is_whitelisted_type(ty_string: &str) -> bool {
         "Milliwatt",
     ];
     whitelisted_types.contains(&ty_string)
+}
+
+fn prefix_struct_field_types(opts: &WrapperOpts, f: &Field) -> TokenStream2 {
+    let field_opt = FieldOpts::from_field(f).unwrap();
+
+    let Field { ident, ty, .. } = f;
+    let ty_string = quote! { #ty }.to_string();
+
+    // Any non-primitive type is prefixed by default.
+    if let Some(new_name) = field_opt.rename_type {
+        let new_name = syn::Type::from_string(&new_name).unwrap();
+        quote! {#ident: #new_name }
+    } else if !is_whitelisted_type(&ty_string) && !field_opt.no_prefix {
+        let new_ty_ident = format_ident!("{}{}", &opts.prefix, ty_string);
+        let new_ty = quote! { #new_ty_ident };
+        quote! { #ident: #new_ty }
+    } else {
+        quote! { #ident: #ty }
+    }
+}
+
+// Enum variants must use a type alias to be named the same as the C type.
+// A "c_api::" prefix is appended to disambiguate the wrapper from the alias.
+//
+// See libtypec_rs::Pdo for examples.
+fn prefix_enum_variants(variant: &Variant) -> TokenStream2 {
+    let ident = variant.ident.clone();
+
+    match &variant.fields {
+        Fields::Unit => quote! { #ident },
+        Fields::Unnamed(fields) => {
+            let fields: Vec<_> = fields
+                .unnamed
+                .iter()
+                .map(|field| {
+                    let inner_data_type = &field.ty;
+                    quote! { c_api::#inner_data_type }
+                })
+                .collect();
+            quote! { #ident(#(#fields),*) }
+        }
+        Fields::Named(fields) => {
+            let fields: Vec<_> = fields
+                .named
+                .iter()
+                .map(|Field { ident, ty, .. }| {
+                    let ident = match ident {
+                        Some(ident) => ident,
+                        None => return quote! { c_api::#ty },
+                    };
+                    quote! { #ident: #ty }
+                })
+                .collect();
+            quote! { #ident { #(#fields),* } }
+        }
+    }
 }
