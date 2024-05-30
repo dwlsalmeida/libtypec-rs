@@ -89,7 +89,6 @@ struct WrapperOpts {
     attrs: Vec<syn::Attribute>,
     prefix: Option<String>,
     repr_c: Option<bool>,
-    variant_prefix: Option<String>,
     #[darling(default)]
     manual_from_impl: bool,
 }
@@ -248,7 +247,7 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                                 .iter()
                                 .map(|field| {
                                     let inner_data_type = &field.ty;
-                                    quote! { #inner_data_type }
+                                    quote! { c_api::#inner_data_type }
                                 })
                                 .collect();
                             quote! { #ident(#(#fields),*) }
@@ -260,7 +259,7 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                                 .map(|Field { ident, ty, .. }| {
                                     let ident = match ident {
                                         Some(ident) => ident,
-                                        None => return quote! { #ty },
+                                        None => return quote! { c_api::#ty },
                                     };
                                     quote! { #ident: #ty }
                                 })

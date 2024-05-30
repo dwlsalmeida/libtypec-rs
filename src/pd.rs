@@ -108,13 +108,9 @@ pub struct VdmHeader {
 #[derive(Debug, Clone, PartialEq, CApiWrapper)]
 #[c_api(prefix = "Pd", repr_c = true)]
 pub enum Pdo {
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2FixedSupplyPdo(Pd3p2FixedSupplyPdo),
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2BatterySupplyPdo(Pd3p2BatterySupplyPdo),
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2VariableSupplyPdo(Pd3p2VariableSupplyPdo),
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2AugmentedPdo(Pd3p2SprProgrammableSupplyPdo),
 }
 
@@ -181,30 +177,19 @@ impl Pdo {
 #[c_api(prefix = "Pd", repr_c = true)]
 pub enum Message {
     /// Sink Capabilities Extended (Extended Message)
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2SinkCapabilitiesExtended(Pd3p2SinkCapabilitiesExtended),
     /// Source Capabilities Extended (Extended Message)
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2SourceCapabilitiesExtended(Pd3p2SourceCapabilitiesExtended),
     /// Battery Capabilities (Extended Message)
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2BatteryCapabilities(Pd3p2BatteryCapData),
     /// Battery Status (Data Message)
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2BatteryStatus(Pd3p2BatteryStatusData),
     /// Discover Identity Response – ACK, NAK or BUSY (Structured VDM)
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2DiscoverIdentityResponse(Pd3p2DiscoverIdentityResponse),
     /// Revision (Data Message)
-    #[c_api(variant_prefix = "Pd3p2")]
     Pd3p2Revision(Pd3p2RevisionMessageData),
 }
 
-// #[cfg(feature="c_api")]
-// fn foo() {
-//     let foo = PdMessage::Pd3p2SinkCapabilitiesExtended(crate::pd::pd3p2::Pd3p2SinkCapabilitiesExtended::default()
-//     );
-// }
 
 /// This enum represents the recipient of the PD message.
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]

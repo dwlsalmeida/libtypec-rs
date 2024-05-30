@@ -8,9 +8,12 @@ use proc_macros::CApiWrapper;
 use proc_macros::Printf;
 use proc_macros::Snprintf;
 
-use crate::pd::pd3p2::vdo::CertStat;
-use crate::pd::pd3p2::vdo::Dfp;
-use crate::pd::pd3p2::vdo::IdHeader;
+use crate::pd::pd3p2::vdo::CertStat as Pd3p2VdoCertStat;
+use crate::pd::pd3p2::vdo::Dfp as Pd3p2VdoDfp;
+use crate::pd::pd3p2::vdo::IdHeader as Pd3p2VdoIdHeader;
+use crate::pd::pd3p2::vdo::ProductType as Pd3p2VdoProductType;
+use crate::pd::pd3p2::vdo::Ufp as Pd3p2VdoUfp;
+use crate::pd::pd3p2::vdo::Vpd as Pd3p2VdoVpd;
 
 #[cfg(feature = "c_api")]
 pub(crate) mod c_api {
@@ -25,24 +28,15 @@ pub(crate) mod c_api {
 #[cfg(feature = "c_api")]
 pub(crate) use c_api::*;
 
-use crate::pd::pd3p2::vdo::ProductType;
-use crate::pd::pd3p2::vdo::Ufp;
-use crate::pd::pd3p2::vdo::Vpd;
 
 #[derive(Debug, Clone, PartialEq, CApiWrapper)]
 #[c_api(prefix = "TypeCRs", repr_c = true)]
 /// A type representing the different types of VDO supported by the library.
 pub enum Vdo {
-    #[c_api(variant_prefix = "Pd3p2Vdo")]
-    Pd3p2IdHeader(IdHeader),
-    #[c_api(variant_prefix = "Pd3p2Vdo")]
-    Pd3p2CertStat(CertStat),
-    #[c_api(variant_prefix = "Pd3p2Vdo")]
-    Pd3p2ProductType(ProductType),
-    #[c_api(variant_prefix = "Pd3p2Vdo")]
-    Pd3p2Vpd(Vpd),
-    #[c_api(variant_prefix = "Pd3p2Vdo")]
-    Pd3p2Ufp(Ufp),
-    #[c_api(variant_prefix = "Pd3p2Vdo")]
-    Pd3p2Dfp(Dfp),
+    Pd3p2IdHeader(Pd3p2VdoIdHeader),
+    Pd3p2CertStat(Pd3p2VdoCertStat),
+    Pd3p2ProductType(Pd3p2VdoProductType),
+    Pd3p2Vpd(Pd3p2VdoVpd),
+    Pd3p2Ufp(Pd3p2VdoUfp),
+    Pd3p2Dfp(Pd3p2VdoDfp),
 }
