@@ -61,8 +61,18 @@ assets = [
         "644",
     ],
     [
-        "target/release/libtypec-rs.h",
+        "target/include/libtypec-rs.h",
         "usr/include/",
+        "644",
+    ],
+    [
+        "target/release/lstypec",
+        "usr/bin/",
+        "644",
+    ],
+    [
+        "target/release/typecstatus",
+        "usr/bin/",
         "644",
     ],
 ]

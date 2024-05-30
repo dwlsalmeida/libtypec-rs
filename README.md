@@ -76,6 +76,9 @@ cargo build --features c_api --release
 This will generate a `.deb` package in `target/debian` whose contents are:
 ```
 └── usr
+    ├── bin
+    │   ├── lstypec
+    │   └── typecstatus
     ├── include
     │   └── libtypec-rs.h
     ├── lib

@@ -7,7 +7,7 @@ fn main() {
         let target_dir = std::path::Path::new("target").join(profile);
 
         run_cbindgen();
-        // generate_pkg_config(&out_dir, &target_dir);
+        generate_pkg_config(&out_dir, &target_dir);
     }
 }
 
