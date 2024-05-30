@@ -12,22 +12,22 @@ use proc_macros::CApiWrapper;
 use proc_macros::Printf;
 use proc_macros::Snprintf;
 
-use crate::pd::pd3p2::BatterySupplyPdo;
-use crate::pd::pd3p2::FixedSupplyPdo;
 use crate::BcdWrapper;
 use crate::BitReader;
 use crate::Error;
 use crate::FromBytes;
 use crate::Result;
 
-use crate::pd::pd3p2::BatteryCapData;
-use crate::pd::pd3p2::BatteryStatusData;
-use crate::pd::pd3p2::DiscoverIdentityResponse;
-use crate::pd::pd3p2::RevisionMessageData;
-use crate::pd::pd3p2::SinkCapabilitiesExtended;
-use crate::pd::pd3p2::SourceCapabilitiesExtended;
-use crate::pd::pd3p2::SprProgrammableSupplyPdo;
-use crate::pd::pd3p2::VariableSupplyPdo;
+use crate::pd::pd3p2::BatterySupplyPdo as Pd3p2BatterySupplyPdo;
+use crate::pd::pd3p2::FixedSupplyPdo as Pd3p2FixedSupplyPdo;
+use crate::pd::pd3p2::BatteryCapData as Pd3p2BatteryCapData;
+use crate::pd::pd3p2::BatteryStatusData as Pd3p2BatteryStatusData;
+use crate::pd::pd3p2::DiscoverIdentityResponse as Pd3p2DiscoverIdentityResponse;
+use crate::pd::pd3p2::RevisionMessageData as Pd3p2RevisionMessageData;
+use crate::pd::pd3p2::SinkCapabilitiesExtended as Pd3p2SinkCapabilitiesExtended;
+use crate::pd::pd3p2::SourceCapabilitiesExtended as Pd3p2SourceCapabilitiesExtended;
+use crate::pd::pd3p2::SprProgrammableSupplyPdo as Pd3p2SprProgrammableSupplyPdo;
+use crate::pd::pd3p2::VariableSupplyPdo as Pd3p2VariableSupplyPdo;
 
 pub mod pd3p2;
 
@@ -109,13 +109,13 @@ pub struct VdmHeader {
 #[c_api(prefix = "Pd", repr_c = true)]
 pub enum Pdo {
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2FixedSupplyPdo(FixedSupplyPdo),
+    Pd3p2FixedSupplyPdo(Pd3p2FixedSupplyPdo),
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2BatterySupplyPdo(BatterySupplyPdo),
+    Pd3p2BatterySupplyPdo(Pd3p2BatterySupplyPdo),
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2VariableSupplyPdo(VariableSupplyPdo),
+    Pd3p2VariableSupplyPdo(Pd3p2VariableSupplyPdo),
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2AugmentedPdo(SprProgrammableSupplyPdo),
+    Pd3p2AugmentedPdo(Pd3p2SprProgrammableSupplyPdo),
 }
 
 impl Pdo {
@@ -125,7 +125,7 @@ impl Pdo {
         match pdo_type {
             0 => match revision.0 {
                 0x310 => {
-                    let pdo = FixedSupplyPdo::from_bytes(reader)?;
+                    let pdo = Pd3p2FixedSupplyPdo::from_bytes(reader)?;
                     Ok(Pdo::Pd3p2FixedSupplyPdo(pdo))
                 }
                 _ => Err(Error::UnsupportedUsbRevision {
@@ -136,7 +136,7 @@ impl Pdo {
             },
             1 => match revision.0 {
                 0x310 => {
-                    let pdo = BatterySupplyPdo::from_bytes(reader)?;
+                    let pdo = Pd3p2BatterySupplyPdo::from_bytes(reader)?;
                     Ok(Pdo::Pd3p2BatterySupplyPdo(pdo))
                 }
                 _ => Err(Error::UnsupportedUsbRevision {
@@ -147,7 +147,7 @@ impl Pdo {
             },
             2 => match revision.0 {
                 0x310 => {
-                    let pdo = VariableSupplyPdo::from_bytes(reader)?;
+                    let pdo = Pd3p2VariableSupplyPdo::from_bytes(reader)?;
                     Ok(Pdo::Pd3p2VariableSupplyPdo(pdo))
                 }
                 _ => Err(Error::UnsupportedUsbRevision {
@@ -158,7 +158,7 @@ impl Pdo {
             },
             3 => match revision.0 {
                 0x310 => {
-                    let pdo = SprProgrammableSupplyPdo::from_bytes(reader)?;
+                    let pdo = Pd3p2SprProgrammableSupplyPdo::from_bytes(reader)?;
                     Ok(Pdo::Pd3p2AugmentedPdo(pdo))
                 }
                 _ => Err(Error::UnsupportedUsbRevision {
@@ -182,23 +182,29 @@ impl Pdo {
 pub enum Message {
     /// Sink Capabilities Extended (Extended Message)
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2SinkCapabilitiesExtended(SinkCapabilitiesExtended),
+    Pd3p2SinkCapabilitiesExtended(Pd3p2SinkCapabilitiesExtended),
     /// Source Capabilities Extended (Extended Message)
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2SourceCapabilitiesExtended(SourceCapabilitiesExtended),
+    Pd3p2SourceCapabilitiesExtended(Pd3p2SourceCapabilitiesExtended),
     /// Battery Capabilities (Extended Message)
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2BatteryCapabilities(BatteryCapData),
+    Pd3p2BatteryCapabilities(Pd3p2BatteryCapData),
     /// Battery Status (Data Message)
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2BatteryStatus(BatteryStatusData),
+    Pd3p2BatteryStatus(Pd3p2BatteryStatusData),
     /// Discover Identity Response – ACK, NAK or BUSY (Structured VDM)
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2DiscoverIdentityResponse(DiscoverIdentityResponse),
+    Pd3p2DiscoverIdentityResponse(Pd3p2DiscoverIdentityResponse),
     /// Revision (Data Message)
     #[c_api(variant_prefix = "Pd3p2")]
-    Pd3p2Revision(RevisionMessageData),
+    Pd3p2Revision(Pd3p2RevisionMessageData),
 }
+
+// #[cfg(feature="c_api")]
+// fn foo() {
+//     let foo = PdMessage::Pd3p2SinkCapabilitiesExtended(crate::pd::pd3p2::Pd3p2SinkCapabilitiesExtended::default()
+//     );
+// }
 
 /// This enum represents the recipient of the PD message.
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]

@@ -238,12 +238,6 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                 .variants
                 .iter()
                 .map(|variant| {
-                    let opts = match WrapperOpts::from_variant(variant) {
-                        Ok(v) => v,
-                        Err(e) => return e.write_errors(),
-                    };
-
-                    let variant_prefix = opts.variant_prefix.unwrap_or_else(|| prefix.clone());
                     let ident = variant.ident.clone();
 
                     match &variant.fields {
@@ -254,15 +248,7 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                                 .iter()
                                 .map(|field| {
                                     let inner_data_type = &field.ty;
-                                    let inner_data_type_string =
-                                        quote! { #inner_data_type }.to_string();
-                                    let new_ty_ident = format_ident!(
-                                        "{}{}",
-                                        variant_prefix.trim(),
-                                        inner_data_type_string,
-                                    );
-                                    let new_ty = quote! { #new_ty_ident };
-                                    new_ty
+                                    quote! { #inner_data_type }
                                 })
                                 .collect();
                             quote! { #ident(#(#fields),*) }
@@ -276,10 +262,7 @@ pub fn c_api_wrapper_derive(input: TokenStream) -> TokenStream {
                                         Some(ident) => ident,
                                         None => return quote! { #ty },
                                     };
-                                    let new_ty_ident =
-                                        format_ident!("{}{}", variant_prefix.trim(), ident);
-                                    let new_ty = quote! { #new_ty_ident };
-                                    quote! { #ident: #new_ty }
+                                    quote! { #ident: #ty }
                                 })
                                 .collect();
                             quote! { #ident { #(#fields),* } }
