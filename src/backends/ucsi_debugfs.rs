@@ -75,7 +75,7 @@ mod driver {
         }
 
         pub fn submit_command(&mut self, command: &[u8]) -> Result<usize> {
-            Ok(self.command_fd.write(&command)?)
+            Ok(self.command_fd.write(command)?)
         }
 
         pub fn wait_response(&mut self) -> Result<Vec<u8>> {
