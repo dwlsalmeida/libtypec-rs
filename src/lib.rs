@@ -32,7 +32,6 @@ use ucsi::ConnectorStatus;
 use ucsi::GetAlternateModesRecipient;
 use ucsi::PdoSourceCapabilitiesType;
 use ucsi::PdoType;
-use walkdir::WalkDir;
 
 pub mod backends;
 pub mod pd;
