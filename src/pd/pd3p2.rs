@@ -7,8 +7,6 @@
 use bitstream_io::BitRead;
 use enumn::N;
 use proc_macros::CApiWrapper;
-use proc_macros::Printf;
-use proc_macros::Snprintf;
 
 use crate::pd::VdmHeader;
 use crate::Error;

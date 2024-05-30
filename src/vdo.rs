@@ -5,8 +5,6 @@
 //! The VDO data structures
 
 use proc_macros::CApiWrapper;
-use proc_macros::Printf;
-use proc_macros::Snprintf;
 
 use crate::pd::pd3p2::vdo::CertStat as Pd3p2VdoCertStat;
 use crate::pd::pd3p2::vdo::Dfp as Pd3p2VdoDfp;

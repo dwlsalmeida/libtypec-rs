@@ -8,8 +8,6 @@ use bitstream_io::BitRead;
 use bitstream_io::BitWrite;
 use enumn::N;
 use proc_macros::CApiWrapper;
-use proc_macros::Printf;
-use proc_macros::Snprintf;
 use bitflags::bitflags;
 
 use crate::pd::MessageRecipient;
