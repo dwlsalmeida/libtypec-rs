@@ -22,7 +22,7 @@ use crate::Result;
 
 /// Maximum VPD VBUS Voltage
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum MaxVbusVoltage {
     #[default]
     /// 20V
@@ -37,7 +37,7 @@ pub enum MaxVbusVoltage {
 
 /// Charge Through Support
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum ChargeThroughSupport {
     #[default]
     /// the VPD does not support Charge Through
@@ -48,7 +48,7 @@ pub enum ChargeThroughSupport {
 
 /// VPD VDO. USB PD 3.2 VPD VDO (Section 6.4.4.3.1.9)
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub struct Vpd {
     /// HW Version 0000b…1111b assigned by the VID owner
     pub hw_version: u8,
@@ -107,7 +107,7 @@ impl FromBytes for Vpd {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum UfpVersion {
     /// Version 1.3 = 011b
     #[default]
@@ -116,7 +116,7 @@ pub enum UfpVersion {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum UfpDeviceCapability {
     #[default]
     /// [USB 2.0] Device Capable
@@ -130,7 +130,7 @@ pub enum UfpDeviceCapability {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum UfpVConnPower {
     #[default]
     /// 1W
@@ -150,7 +150,7 @@ pub enum UfpVConnPower {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum UfpAlternateModes {
     #[default]
     /// Supports [TBT3] Alternate Mode
@@ -161,7 +161,7 @@ pub enum UfpAlternateModes {
     NonReconfigurable,
 }
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub struct Ufp {
     /// Version Number of the VDO (not this specification Version)
     pub ufp_vdo_version: UfpVersion,
@@ -227,7 +227,7 @@ impl FromBytes for Ufp {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum DfpVersion {
     #[default]
     /// Version 1.2 = 010b
@@ -236,7 +236,7 @@ pub enum DfpVersion {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum DfpHostCapability {
     #[default]
     /// [USB 2] Host Capable
@@ -248,7 +248,7 @@ pub enum DfpHostCapability {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 /// See USB PD 3.2 - 6.4.4.3.1.5 DFP VDO
 pub struct Dfp {
     /// Version Number of the VDO (not this specification Version)
@@ -299,7 +299,7 @@ impl FromBytes for Dfp {
 pub const MAX_NUM_ALT_MODE: usize = 6;
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub struct Product {
     /// Product ID (assigned by the manufacturer)
     product_id: u32,
@@ -324,7 +324,7 @@ impl FromBytes for Product {
 ///
 /// See table 6.38 in the USB PD Specification for more information.
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub struct CertStat {
     /// The XID assigned by USB-IF to the product before certification in binary
     /// format.
@@ -340,7 +340,7 @@ impl FromBytes for CertStat {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 /// See USBPDB 6.4.4.3.1.4
 pub enum SopDfpProductType {
     #[default]
@@ -351,7 +351,7 @@ pub enum SopDfpProductType {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum SopUfpProductType {
     #[default]
     NotAUfp,
@@ -365,7 +365,7 @@ pub enum SopUfpProductType {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum IdHeaderConnectorType {
     #[default]
     TypecReceptacle = 2,
@@ -373,7 +373,7 @@ pub enum IdHeaderConnectorType {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub struct IdHeader {
     /// Null-terminated vendor string.
     #[c_api(no_prefix)]
@@ -463,7 +463,7 @@ impl FromBytes for IdHeader {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c = true)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c)]
 pub enum ProductType {
     /// See USBPDB 6.4.4.3.1.6
     #[default]

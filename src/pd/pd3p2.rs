@@ -36,7 +36,7 @@ pub(crate) use c::*;
 pub mod vdo;
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true, manual_from_impl)]
+#[c_api(prefix = "Pd3p2", repr_c, manual_from_impl)]
 /// The response to a Discover Identity command.
 pub struct DiscoverIdentityResponse {
     #[c_api(rename_type = "PdVdmHeader")]
@@ -90,7 +90,7 @@ impl From<DiscoverIdentityResponse> for Pd3p2DiscoverIdentityResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub enum SceTouchTemp {
     #[default]
     NotApplicable = 0,
@@ -100,7 +100,7 @@ pub enum SceTouchTemp {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SceLoadStep {
     /// 150mA/µs Load Step (default)
     pub load_step_150ma: bool,
@@ -109,7 +109,7 @@ pub struct SceLoadStep {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SinkLoadCharacteristics {
     /// Percent overload in 10% increments. Values higher than 25 (11001b)
     /// are clipped to 250%. 00000b is the default.
@@ -123,7 +123,7 @@ pub struct SinkLoadCharacteristics {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SCEDCompliance {
     /// Requires LPS Source when set
     pub requires_lps_source: bool,
@@ -134,7 +134,7 @@ pub struct SCEDCompliance {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SCEDSinkModes {
     /// 1: PPS charging supported
     pub pps_charging_supported: bool,
@@ -151,7 +151,7 @@ pub struct SCEDSinkModes {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SinkCapabilitiesExtended {
     /// Numeric Vendor ID (assigned by the USB-IF)
     pub vid: u32,
@@ -184,7 +184,7 @@ pub struct SinkCapabilitiesExtended {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SceVoltageRegulation {
     /// 00b: 150mA/µs Load Step (default)
     pub load_step_150ma: bool,
@@ -197,7 +197,7 @@ pub struct SceVoltageRegulation {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SceCompliance {
     /// LPS compliant when set
     pub lps_compliant: bool,
@@ -208,7 +208,7 @@ pub struct SceCompliance {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SceTouchCurrent {
     /// Low touch Current EPS when set
     pub low_touch_current_eps: bool,
@@ -219,7 +219,7 @@ pub struct SceTouchCurrent {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct ScePeakCurrent {
     /// Percent overload in 10% increments. Values higher than 25 (11001b)
     /// are clipped to 250%.
@@ -233,7 +233,7 @@ pub struct ScePeakCurrent {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SceSourceInputs {
     /// No external supply when set
     pub no_external_supply: bool,
@@ -244,7 +244,7 @@ pub struct SceSourceInputs {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SourceCapabilitiesExtended {
     /// Numeric Vendor ID (assigned by the USB-IF)
     pub vid: u32,
@@ -284,7 +284,7 @@ pub struct SourceCapabilitiesExtended {
 
 /// See USPD - 6.5.3 Get_Battery_Cap Message
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct BatteryCapData {
     #[c_api(no_prefix)]
     pub batteries_fixed: [u32; 4],
@@ -293,7 +293,7 @@ pub struct BatteryCapData {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct BSDBatteryInfo {
     /// Invalid Battery reference
     pub invalid_battery_reference: bool,
@@ -308,7 +308,7 @@ pub struct BSDBatteryInfo {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct BatteryStatusData {
     /// Battery’s State of Charge (SoC) in 0.1 WH increments
     /// Note: 0xFFFF = Battery’s SOC unknown
@@ -318,7 +318,7 @@ pub struct BatteryStatusData {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct RevisionMessageData {
     /// Revision.major
     pub revision_major: u32,
@@ -333,7 +333,7 @@ pub struct RevisionMessageData {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 /// See USB PD 3.2 - Table 6.17 “Fixed Supply PDO – Sink”
 pub enum FastRoleSwap {
     #[default]
@@ -344,7 +344,7 @@ pub enum FastRoleSwap {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 /// See USB PD 3.2 - Table 6.17 “Fixed Supply PDO – Sink”
 pub struct FixedSupplyPdo {
     pub dual_role_power: bool,
@@ -393,7 +393,7 @@ impl FromBytes for FixedSupplyPdo {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct BatterySupplyPdo {
     pub max_voltage: Millivolt,
     pub min_voltage: Millivolt,
@@ -419,7 +419,7 @@ impl FromBytes for BatterySupplyPdo {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct VariableSupplyPdo {
     pub max_voltage: Millivolt,
     pub min_voltage: Millivolt,
@@ -445,7 +445,7 @@ impl FromBytes for VariableSupplyPdo {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2", repr_c = true)]
+#[c_api(prefix = "Pd3p2", repr_c)]
 pub struct SprProgrammableSupplyPdo {
     pub max_voltage: Millivolt,
     pub min_voltage: Millivolt,

@@ -25,7 +25,7 @@ mod c_api {
 
 
 #[derive(Debug, Clone, PartialEq, CApiWrapper)]
-#[c_api(prefix = "TypeCRs", repr_c = true)]
+#[c_api(prefix = "TypeCRs", repr_c)]
 /// A type representing the different types of VDO supported by the library.
 pub enum Vdo {
     Pd3p2IdHeader(Pd3p2VdoIdHeader),

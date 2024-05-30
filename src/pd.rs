@@ -44,7 +44,7 @@ mod c_api {
 pub mod pd3p2;
 
 #[derive(Debug, Clone, PartialEq, Default, N, CApiWrapper)]
-#[c_api(prefix = "Pd", repr_c = true)]
+#[c_api(prefix = "Pd", repr_c)]
 pub enum CommandType {
     /// Request from initiator port.
     #[default]
@@ -58,7 +58,7 @@ pub enum CommandType {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd", repr_c = true)]
+#[c_api(prefix = "Pd", repr_c)]
 pub enum Command {
     /// The Discover Identity Command is provided to enable an Initiator to
     /// identify its Port Partner and for an Initiator (VCONN Source) to
@@ -76,7 +76,7 @@ pub enum Command {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd", repr_c = true)]
+#[c_api(prefix = "Pd", repr_c)]
 /// The VDM header. See table 6.30 in the USB PD Specification for more
 /// information.
 pub struct VdmHeader {
@@ -101,7 +101,7 @@ pub struct VdmHeader {
 }
 
 #[derive(Debug, Clone, PartialEq, CApiWrapper)]
-#[c_api(prefix = "Pd", repr_c = true)]
+#[c_api(prefix = "Pd", repr_c)]
 pub enum Pdo {
     Pd3p2FixedSupplyPdo(Pd3p2FixedSupplyPdo),
     Pd3p2BatterySupplyPdo(Pd3p2BatterySupplyPdo),
@@ -169,7 +169,7 @@ impl Pdo {
 }
 
 #[derive(Debug, Clone, PartialEq, CApiWrapper)]
-#[c_api(prefix = "Pd", repr_c = true)]
+#[c_api(prefix = "Pd", repr_c)]
 pub enum Message {
     /// Sink Capabilities Extended (Extended Message)
     Pd3p2SinkCapabilitiesExtended(Pd3p2SinkCapabilitiesExtended),
@@ -188,7 +188,7 @@ pub enum Message {
 
 /// This enum represents the recipient of the PD message.
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd", repr_c = true)]
+#[c_api(prefix = "Pd", repr_c)]
 pub enum MessageRecipient {
     #[default]
     /// The OPM wants to retrieve the USB PD response message from the
@@ -207,7 +207,7 @@ pub enum MessageRecipient {
 
 /// This enum represents the type of the PD response message.
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Pd", repr_c = true)]
+#[c_api(prefix = "Pd", repr_c)]
 pub enum MessageResponseType {
     #[default]
     /// Sink Capabilities Extended (Extended Message)

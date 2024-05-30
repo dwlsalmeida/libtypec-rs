@@ -24,7 +24,7 @@ use crate::bitflags_wrapper;
 pub const UCSI_MAX_NUM_ALT_MODE: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 /// See Table 6-24: GET_ALTERNATE_MODES Command.
 pub enum GetAlternateModesRecipient {
     #[default]
@@ -38,7 +38,7 @@ pub enum GetAlternateModesRecipient {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum PdoType {
     #[default]
     Sink,
@@ -46,7 +46,7 @@ pub enum PdoType {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum PdoSourceCapabilitiesType {
     #[default]
     CurrentSupportedSourceCapabilities,
@@ -241,7 +241,7 @@ impl ToBytes for Command {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 /// This struct represents the GET_CONNECTOR_STATUS data.
 pub struct ConnectorStatus {
     /// A bitmap indicating the types of status changes that have occurred on
@@ -306,7 +306,7 @@ pub struct ConnectorStatus {
 /// Connector Status Change Field Description for GET_CONNECTOR_STATUS. See
 /// UCSI Table 6-44 for more information.
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub struct ConnectorStatusChange {
     /// Bit 0: Reserved. Shall be set to zero.
     pub reserved1: bool,
@@ -351,7 +351,7 @@ pub struct ConnectorStatusChange {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum ConnectorOrientation {
     /// The connection is in the normal orientation.
     #[default]
@@ -361,7 +361,7 @@ pub enum ConnectorOrientation {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum SinkPathStatus {
     /// The Sink Path is not ready.
     #[default]
@@ -371,7 +371,7 @@ pub enum SinkPathStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum PowerOperationMode {
     #[default]
     Reserved = 0,
@@ -385,7 +385,7 @@ pub enum PowerOperationMode {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum PowerDirection {
     #[default]
     Consumer = 0,
@@ -393,7 +393,7 @@ pub enum PowerDirection {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum ConnectorPartnerType {
     #[default]
     Reserved = 0,
@@ -407,7 +407,7 @@ pub enum ConnectorPartnerType {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum BatteryChargingCapabilityStatus {
     #[default]
     NotCharging = 0,
@@ -417,7 +417,7 @@ pub enum BatteryChargingCapabilityStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum CablePropertySpeedExponent {
     #[default]
     Bps = 0,
@@ -427,7 +427,7 @@ pub enum CablePropertySpeedExponent {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum CablePropertyPlugEndType {
     #[default]
     UsbTypeA,
@@ -437,7 +437,7 @@ pub enum CablePropertyPlugEndType {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum CablePropertyType {
     #[default]
     Passive = 0,
@@ -445,7 +445,7 @@ pub enum CablePropertyType {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub enum CablePropertyDirectionality {
     #[default]
     Configurable = 0,
@@ -453,7 +453,7 @@ pub enum CablePropertyDirectionality {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 /// See UCSI Table 6-40: GET_CABLE_PROPERTY Data
 pub struct CableProperty {
     /// Speed Exponent (SE). This field defines the base 10 exponent times 3,
@@ -547,7 +547,7 @@ impl FromBytes for CableProperty {
 ///
 /// See USCI 3.0 - Table 6.26.
 #[derive(Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub struct AlternateMode {
     #[c_api(no_prefix)]
     pub svid: [u32; 2],
@@ -581,14 +581,14 @@ impl std::fmt::Debug for AlternateMode {
 
 /// See UCSI - Table 6-29: GET_CAM_SUPPORTED Data
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub struct CamSupported {
     /// Whether an alternate mode is supported.
     pub cam_supported: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub struct CurrentAlternatingModes {
     /// Offsets into the list of Alternate Modes that the connector is
     /// currently operating in.
@@ -625,7 +625,7 @@ bitflags_wrapper! {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 /// Connector capability data extended operation mode.
 pub enum ConnectorCapabilityExtendedOperationMode {
     #[default]
@@ -637,7 +637,7 @@ pub enum ConnectorCapabilityExtendedOperationMode {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, N, Copy, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 /// Connector capability data miscellaneous capabilities.
 pub enum ConnectorCapabilityMiscellaneousCapabilities {
     #[default]
@@ -646,7 +646,7 @@ pub enum ConnectorCapabilityMiscellaneousCapabilities {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 /// The response to a `GET_CONNECTOR_CAPABILITY` command.
 /// See UCSI - Table 6-17: GET_CONNECTOR_CAPABILTY Data
 pub struct ConnectorCapability {
@@ -744,7 +744,7 @@ impl FromBytes for ConnectorCapability {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub struct Capability {
     /// The supported PPM features.
     pub bm_attributes: BmAttributes,
@@ -808,7 +808,7 @@ impl FromBytes for Capability {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub struct BmAttributes {
     /// Indicates whether this platform supports the Disabled State as defined
     /// in Section 4.5.2.2.1 in the [USBTYPEC].
@@ -849,7 +849,7 @@ impl FromBytes for BmAttributes {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub struct BmOptionalFeatures {
     /// This feature indicates that the PPM supports the SET_CCOM command.
     pub set_ccom_supported: bool,
@@ -931,7 +931,7 @@ impl FromBytes for BmOptionalFeatures {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Ucsi", repr_c = true)]
+#[c_api(prefix = "Ucsi", repr_c)]
 pub struct BmPowerSource {
     pub ac_supply: bool,
     pub other: bool,
