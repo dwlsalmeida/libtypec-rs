@@ -4,8 +4,8 @@
 
 //! The sysfs backend
 
-use mockall_double::double;
 use regex::Regex;
+use walkdir::WalkDir;
 
 use std::path::Path;
 use std::path::PathBuf;
@@ -28,10 +28,7 @@ use crate::Error;
 use crate::OsBackend;
 use crate::Result;
 
-#[double]
 use sysfs_reader::SysfsReader;
-#[double]
-use sysfs_walker::SysfsWalker;
 
 const SYSFS_TYPEC_PATH: &str = "/sys/class/typec";
 const SYSFS_PSY_PATH: &str = "/sys/class/power_supply";
@@ -50,12 +47,7 @@ fn check_path(path: &str) -> Result<PathBuf> {
     }
 }
 
-/// A module to differentiate `SysfsReader` from `MockSysfsReader`. This is a
-/// limitation of the `mockall` crate.
 pub mod sysfs_reader {
-    #[cfg(test)]
-    use mockall::{automock, predicate::*};
-
     use std::io;
     use std::io::Cursor;
     use std::path::Path;
@@ -84,10 +76,8 @@ pub mod sysfs_reader {
 
     use super::SYSFS_TYPEC_PATH;
 
-    /// A mockable sysfs reader.
     pub struct SysfsReader(Option<PathBuf>);
 
-    #[cfg_attr(test, automock)]
     impl SysfsReader {
         pub fn new() -> Result<Self> {
             Ok(Self(None))
@@ -484,94 +474,15 @@ pub mod sysfs_reader {
     }
 }
 
-/// A module to differentiate `SysfsWalker` from `MockSysfsWalker`. This is a
-/// limitation of the `mockall` crate.
-mod sysfs_walker {
-    #[cfg(test)]
-    use mockall::{automock, predicate::*};
-
-    use std::ffi::OsStr;
-    use std::path::Path;
-    use std::path::PathBuf;
-
-    use crate::Error;
-    use crate::Result;
-
-    #[cfg_attr(test, automock)]
-    /// An abstraction for a directory entry. This abstracts away a directory
-    /// entry so that it can be mocked.
-    pub trait Entry {
-        fn file_name(&self) -> &OsStr;
-        fn path(&self) -> &Path;
-    }
-
-    impl Entry for walkdir::DirEntry {
-        fn file_name(&self) -> &std::ffi::OsStr {
-            self.file_name()
-        }
-
-        fn path(&self) -> &std::path::Path {
-            self.path()
-        }
-    }
-
-    /// A sysfs directory walker.
-    pub struct SysfsWalker(Option<PathBuf>);
-
-    #[cfg_attr(test, automock)]
-    impl SysfsWalker {
-        pub fn new() -> Result<Self> {
-            Ok(Self(None))
-        }
-
-        pub fn set_path(&mut self, path: &str) -> crate::Result<()> {
-            self.0 = Some(super::check_path(path)?);
-            Ok(())
-        }
-
-        pub fn iter(&mut self) -> impl Iterator<Item = Result<Box<dyn Entry>>> {
-            let path = self.0.take().expect("Path is not set");
-            let wd = walkdir::WalkDir::new(path);
-            WalkerIter(wd.into_iter())
-        }
-    }
-
-    /// A mockable iterator for the directories.
-    pub struct WalkerIter(pub walkdir::IntoIter);
-
-    #[cfg_attr(test, automock)]
-    impl Iterator for WalkerIter {
-        type Item = Result<Box<dyn Entry>>;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            self.0.next().map(|res| {
-                // Convert from walkdir::Error into Error::DirError
-                res.map_err(|walkdir_error| Error::DirError {
-                    source: Box::new(walkdir_error),
-                    #[cfg(feature = "backtrace")]
-                    backtrace: std::backtrace::Backtrace::capture(),
-                })
-                // Convert into a Box<dyn Entry>
-                .map(|dir_entry| Box::new(dir_entry) as Box<dyn Entry>)
-            })
-        }
-    }
-}
-
 pub struct SysfsBackend {
     /// Reads the sysfs files.
     reader: SysfsReader,
-    /// Walks the sysfs directories.
-    walker: SysfsWalker,
 }
 
 impl SysfsBackend {
     /// Initializes the sysfs backend.
     pub fn new() -> Result<Self> {
-        let mut walker = SysfsWalker::new()?;
-        walker.set_path(SYSFS_TYPEC_PATH)?;
-
-        if walker.iter().count() == 1 {
+        if WalkDir::new(SYSFS_TYPEC_PATH).into_iter().count() == 1 {
             return Err(Error::NotSupported {
                 #[cfg(feature = "backtrace")]
                 backtrace: std::backtrace::Backtrace::capture(),
@@ -580,7 +491,6 @@ impl SysfsBackend {
 
         Ok(Self {
             reader: SysfsReader::new()?,
-            walker: SysfsWalker::new()?,
         })
     }
 }
@@ -592,17 +502,14 @@ impl OsBackend for SysfsBackend {
         let mut pd_version = Default::default();
         let mut usb_type_c_version = Default::default();
 
-        self.walker.set_path(SYSFS_TYPEC_PATH)?;
-        for entry in self.walker.iter() {
+        for entry in WalkDir::new(SYSFS_TYPEC_PATH) {
             let entry = entry?;
             let entry_name = entry.file_name().to_string_lossy();
 
             let re = Regex::new(r"^port\d+$").unwrap();
             if re.is_match(&entry_name) {
                 num_ports += 1;
-                let path = &entry.path().to_string_lossy();
-                self.walker.set_path(path)?;
-                for port_entry in self.walker.iter() {
+                for port_entry in WalkDir::new(entry.path()) {
                     let port_entry = port_entry?;
                     let port_entry_name = port_entry.file_name().to_string_lossy();
 
@@ -863,8 +770,7 @@ impl OsBackend for SysfsBackend {
         };
 
         let port_path = format!("{SYSFS_TYPEC_PATH}/port{connector_nr}");
-        self.walker.set_path(&port_path)?;
-        for entry in self.walker.iter() {
+        for entry in WalkDir::new(&port_path) {
             let entry = entry?;
             let entry_name = entry.file_name().to_string_lossy();
             let port_path = format!("{path_str}/{entry_name}");
@@ -893,486 +799,5 @@ impl OsBackend for SysfsBackend {
         }
 
         Ok(pdos)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::ffi::OsStr;
-
-    use mockall::{predicate::eq, Sequence};
-
-    use crate::ucsi::{CablePropertyPlugEndType, CablePropertyType};
-
-    use super::*;
-    use sysfs_walker::MockEntry;
-    #[double]
-    use sysfs_walker::WalkerIter;
-
-    #[test]
-    fn test_get_capability() {
-        let mut mock_reader = SysfsReader::default();
-        let mut mock_walker = SysfsWalker::default();
-        let path0 = format!("{SYSFS_TYPEC_PATH}/port0");
-        let path1 = format!("{SYSFS_TYPEC_PATH}/port1");
-
-        mock_walker
-            .expect_set_path()
-            .with(eq(SYSFS_TYPEC_PATH))
-            .returning(|_| Ok(()));
-
-        let mut mock_port0 = MockEntry::default();
-        mock_port0
-            .expect_file_name()
-            .return_const(OsStr::new("port0").to_owned());
-        mock_port0.expect_path().return_const(path0.clone().into());
-
-        mock_walker
-            .expect_set_path()
-            .with(eq(path0.clone()))
-            .return_once(|_| Ok(()));
-
-        let mut mock_port00 = MockEntry::default();
-        mock_port00
-            .expect_file_name()
-            .return_const(OsStr::new("port0.0").to_owned());
-        let path00 = format!("{}/port0.0", path0);
-        mock_port00.expect_path().return_const(path00.into());
-
-        let mut mock_port01 = MockEntry::default();
-        mock_port01
-            .expect_file_name()
-            .return_const(OsStr::new("port0.1").to_owned());
-        let path11 = format!("{}/port0.1", path1);
-        mock_port01.expect_path().return_const(path11.into());
-
-        let mut mock_port02 = MockEntry::default();
-        mock_port02
-            .expect_file_name()
-            .return_const(OsStr::new("port0.2").to_owned());
-        let path12 = format!("{}/port0.2", path1);
-        mock_port02.expect_path().return_const(path12.into());
-
-        let mut port0_am_iter = WalkerIter::default();
-
-        let mut seq = Sequence::new();
-        port0_am_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| Some(Ok(Box::new(mock_port00))))
-            .in_sequence(&mut seq);
-        port0_am_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| Some(Ok(Box::new(mock_port01))))
-            .in_sequence(&mut seq);
-        port0_am_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| Some(Ok(Box::new(mock_port02))))
-            .in_sequence(&mut seq);
-        port0_am_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| None)
-            .in_sequence(&mut seq);
-
-        let path0_pd = format!("{}/usb_power_delivery_revision", path0);
-        mock_reader
-            .expect_set_path()
-            .with(eq(path0_pd))
-            .return_once(|_| Ok(()));
-
-        let mut read_bcd_seq = Sequence::new();
-        mock_reader
-            .expect_read_bcd()
-            .times(1)
-            .returning(|| Ok(BcdWrapper(0x300)))
-            .in_sequence(&mut read_bcd_seq);
-
-        let path0_usbc_ver = format!("{}/usb_typec_revision", path0);
-        mock_reader
-            .expect_set_path()
-            .with(eq(path0_usbc_ver))
-            .return_once(|_| Ok(()));
-        mock_reader
-            .expect_read_bcd()
-            .times(1)
-            .returning(|| Ok(BcdWrapper(0x300)))
-            .in_sequence(&mut read_bcd_seq);
-
-        let mut mock_port1 = MockEntry::default();
-        mock_port1
-            .expect_file_name()
-            .return_const(OsStr::new("port1").to_owned());
-
-        mock_port1.expect_path().return_const(path1.clone().into());
-
-        let mut mock_port10 = MockEntry::default();
-        mock_port10
-            .expect_file_name()
-            .return_const(OsStr::new("port1.0").to_owned());
-        let path10 = format!("{}/port1.0", path1);
-        mock_port10.expect_path().return_const(path10.into());
-
-        let mut mock_port11 = MockEntry::default();
-        mock_port11
-            .expect_file_name()
-            .return_const(OsStr::new("port1.1").to_owned());
-        let path11 = format!("{}/port1.1", path1);
-        mock_port11.expect_path().return_const(path11.into());
-
-        let mut mock_port12 = MockEntry::default();
-        mock_port12
-            .expect_file_name()
-            .return_const(OsStr::new("port1.2").to_owned());
-        let path12 = format!("{}/port1.2", path1);
-        mock_port12.expect_path().return_const(path12.into());
-
-        let mut seq = Sequence::new();
-        let mut port1_am_iter = WalkerIter::default();
-        port1_am_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| Some(Ok(Box::new(mock_port10))))
-            .in_sequence(&mut seq);
-        port1_am_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| Some(Ok(Box::new(mock_port11))))
-            .in_sequence(&mut seq);
-        port1_am_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| Some(Ok(Box::new(mock_port12))))
-            .in_sequence(&mut seq);
-        port1_am_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| None)
-            .in_sequence(&mut seq);
-
-        let path1_pd = format!("{}/usb_power_delivery_revision", path1);
-        mock_reader
-            .expect_set_path()
-            .with(eq(path1_pd))
-            .return_once(|_| Ok(()));
-        mock_reader
-            .expect_read_bcd()
-            .times(1)
-            .returning(|| Ok(BcdWrapper(0x300)))
-            .in_sequence(&mut read_bcd_seq);
-
-        let path1_usbc_ver = format!("{}/usb_typec_revision", path1);
-        mock_reader
-            .expect_set_path()
-            .with(eq(path1_usbc_ver))
-            .return_once(|_| Ok(()));
-        mock_reader
-            .expect_read_bcd()
-            .times(1)
-            .returning(|| Ok(BcdWrapper(0x120)))
-            .in_sequence(&mut read_bcd_seq);
-        mock_walker
-            .expect_set_path()
-            .with(eq(path1))
-            .return_once(|_| Ok(()));
-
-        let mut seq = Sequence::new();
-        let mut port_iter = WalkerIter::default();
-        port_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| Some(Ok(Box::new(mock_port0))))
-            .in_sequence(&mut seq);
-        port_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| Some(Ok(Box::new(mock_port1))))
-            .in_sequence(&mut seq);
-        port_iter
-            .expect_next()
-            .times(1)
-            .return_once(|| None)
-            .in_sequence(&mut seq);
-
-        let mut seq = Sequence::new();
-        mock_walker
-            .expect_iter()
-            .times(1)
-            .return_once(|| Box::new(port_iter))
-            .in_sequence(&mut seq);
-        mock_walker
-            .expect_iter()
-            .times(1)
-            .return_once(|| Box::new(port0_am_iter))
-            .in_sequence(&mut seq);
-        mock_walker
-            .expect_iter()
-            .times(1)
-            .return_once(|| Box::new(port1_am_iter))
-            .in_sequence(&mut seq);
-
-        let mut backend = SysfsBackend {
-            reader: mock_reader,
-            walker: mock_walker,
-        };
-
-        // Check that we can get the capabilities.
-        let actual = backend.capabilities().unwrap();
-
-        let expected = Capability {
-            num_connectors: 2,
-            num_alt_modes: 6,
-            pd_version: BcdWrapper(0x300),
-            usb_type_c_version: BcdWrapper(0x120),
-            ..Default::default()
-        };
-
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_get_connector_capability() {
-        let mut mock_reader = SysfsReader::default();
-        let path0 = format!("{SYSFS_TYPEC_PATH}/port0");
-        let path0_power_role = format!("{}/power_role", path0);
-
-        mock_reader
-            .expect_set_path()
-            .with(eq(path0_power_role))
-            .return_once(|_| Ok(()));
-        mock_reader
-            .expect_read_opr()
-            .returning(|| Ok(ConnectorCapabilityOperationMode::DRP));
-
-        if crate::is_chrome_os() {
-            let path0_pd = format!("{}/usb_power_delivery_revision", path0);
-            mock_reader
-                .expect_set_path()
-                .with(eq(path0_pd))
-                .return_once(|_| Ok(()));
-            mock_reader
-                .expect_read_pd_revision()
-                .returning(|| Ok(0x300));
-        }
-        let mut backend = SysfsBackend {
-            reader: mock_reader,
-            walker: SysfsWalker::default(),
-        };
-
-        // Check that we can get the connector capabilities.
-        let actual = backend.connector_capabilties(0).unwrap();
-        let mut expected = ConnectorCapability {
-            operation_mode: ConnectorCapabilityOperationMode::DRP,
-            provider: true,
-            consumer: true,
-            ..Default::default()
-        };
-
-        if crate::is_chrome_os() {
-            expected.partner_pd_revision = 0x300;
-        }
-
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_get_alternate_modes() {
-        let mut mock_reader = SysfsReader::default();
-        let path0 = format!("{}/port0/port0.0", SYSFS_TYPEC_PATH);
-        let path0_svid = format!("{}/svid", path0);
-        let path0_vdo = format!("{}/vdo", path0);
-
-        let mut sequence = Sequence::new();
-
-        // Extracted from a test machine
-        let svid0 = 32903;
-        let vdo0 = 1;
-        let svid1 = 65281;
-        let vdo1 = 1842246;
-        let svid2 = 16700;
-        let vdo2 = 1;
-
-        mock_reader
-            .expect_set_path()
-            .times(1)
-            .with(eq(path0_svid))
-            .return_once(|_| Ok(()))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        mock_reader
-            .expect_read_hex_u32()
-            .times(1)
-            .returning(move || Ok(svid0))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        mock_reader
-            .expect_set_path()
-            .times(1)
-            .with(eq(path0_vdo))
-            .return_once(|_| Ok(()))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        mock_reader
-            .expect_read_hex_u32()
-            .times(1)
-            .return_once(move || Ok(vdo0))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        let path1 = format!("{}/port0/port0.1", SYSFS_TYPEC_PATH);
-        let path1_svid = format!("{}/svid", path1);
-        let path1_vdo = format!("{}/vdo", path1);
-
-        mock_reader
-            .expect_set_path()
-            .times(1)
-            .with(eq(path1_svid))
-            .return_once(|_| Ok(()))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        mock_reader
-            .expect_read_hex_u32()
-            .times(1)
-            .returning(move || Ok(svid1))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        mock_reader
-            .expect_set_path()
-            .times(1)
-            .with(eq(path1_vdo))
-            .return_once(|_| Ok(()))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        mock_reader
-            .expect_read_hex_u32()
-            .times(1)
-            .return_once(move || Ok(vdo1))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        let path2 = format!("{}/port0/port0.2", SYSFS_TYPEC_PATH);
-        let path2_svid = format!("{}/svid", path2);
-        let path2_vdo = format!("{}/vdo", path2);
-
-        mock_reader
-            .expect_set_path()
-            .times(1)
-            .with(eq(path2_svid))
-            .return_once(|_| Ok(()))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        mock_reader
-            .expect_read_hex_u32()
-            .times(1)
-            .returning(move || Ok(svid2))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        mock_reader
-            .expect_set_path()
-            .times(1)
-            .with(eq(path2_vdo))
-            .return_once(|_| Ok(()))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        mock_reader
-            .expect_read_hex_u32()
-            .times(1)
-            .return_once(move || Ok(vdo2))
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        let path3 = format!("{}/port0/port0.3", SYSFS_TYPEC_PATH);
-        let path3_svid = format!("{}/svid", path3);
-        mock_reader
-            .expect_set_path()
-            .times(1)
-            .with(eq(path3_svid))
-            .return_once(|_| {
-                Err(Error::NotSupported {
-                    #[cfg(feature = "backtrace")]
-                    backtrace: std::backtrace::Backtrace::capture(),
-                })
-            })
-            .times(1)
-            .in_sequence(&mut sequence);
-
-        let mut backend = SysfsBackend {
-            reader: mock_reader,
-            walker: SysfsWalker::default(),
-        };
-
-        let alt_modes = backend
-            .alternate_modes(crate::ucsi::GetAlternateModesRecipient::Connector, 0)
-            .unwrap();
-
-        assert_eq!(alt_modes[0].svid[0], svid0);
-        assert_eq!(alt_modes[0].vdo[0], vdo0);
-        assert_eq!(alt_modes[1].svid[0], svid1);
-        assert_eq!(alt_modes[1].vdo[0], vdo1);
-        assert_eq!(alt_modes[2].svid[0], svid2);
-        assert_eq!(alt_modes[2].vdo[0], vdo2);
-    }
-
-    #[test]
-    fn test_cable_properties() {
-        let mut mock_reader = SysfsReader::default();
-        let path_str = format!("{}/port{}-cable", SYSFS_TYPEC_PATH, 0);
-
-        let plug_type_path = format!("{}/{}", path_str, "plug_type");
-        mock_reader
-            .expect_set_path()
-            .with(eq(plug_type_path.clone()))
-            .return_once(|_| Ok(()));
-        mock_reader
-            .expect_read_cable_plug_type()
-            .return_once(|| Ok(CablePropertyPlugEndType::UsbTypeC));
-
-        let cable_type_path = format!("{}/{}", path_str, "type");
-        mock_reader
-            .expect_set_path()
-            .with(eq(cable_type_path.clone()))
-            .return_once(|_| Ok(()));
-        mock_reader
-            .expect_read_cable_type()
-            .return_once(|| Ok(CablePropertyType::Active));
-
-        let mode_support_path = format!(
-            "{}/port{}-plug0/{}",
-            SYSFS_TYPEC_PATH, 0, "number_of_alternate_modes"
-        );
-        mock_reader
-            .expect_set_path()
-            .with(eq(mode_support_path.clone()))
-            .return_once(|_| Ok(()));
-        mock_reader
-            .expect_read_cable_mode_support()
-            .return_once(|| Ok(true));
-
-        let mut backend = SysfsBackend {
-            reader: mock_reader,
-            walker: SysfsWalker::default(),
-        };
-
-        let actual = backend.cable_properties(0).unwrap();
-
-        let expected = CableProperty {
-            plug_end_type: CablePropertyPlugEndType::UsbTypeC,
-            cable_type: CablePropertyType::Active,
-            mode_support: true,
-            ..Default::default()
-        };
-
-        assert_eq!(actual, expected);
     }
 }

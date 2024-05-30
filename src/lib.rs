@@ -32,6 +32,7 @@ use ucsi::ConnectorStatus;
 use ucsi::GetAlternateModesRecipient;
 use ucsi::PdoSourceCapabilitiesType;
 use ucsi::PdoType;
+use walkdir::WalkDir;
 
 pub mod backends;
 pub mod pd;
@@ -232,8 +233,9 @@ pub enum Error {
         backtrace: std::backtrace::Backtrace,
     },
     #[error("{source}")]
-    DirError {
-        source: Box<dyn std::error::Error + 'static>,
+    WalkdirError {
+        #[from]
+        source: walkdir::Error,
         #[cfg(feature = "backtrace")]
         backtrace: std::backtrace::Backtrace,
     },
@@ -289,12 +291,12 @@ impl std::fmt::Debug for Error {
                 #[cfg(feature = "backtrace")]
                 write!(f, "\n\nerror stack backtrace:\n{}", backtrace)
             }
-            Self::DirError {
+            Self::WalkdirError {
                 source,
                 #[cfg(feature = "backtrace")]
                 backtrace,
             } => {
-                f.debug_struct("DirError")
+                f.debug_struct("WalkdirError")
                     .field("source", source)
                     .finish()?;
 
@@ -380,7 +382,7 @@ impl From<Error> for CError {
             Error::ParseError { .. }
             | Error::Utf8Error { .. }
             | Error::NulError { .. }
-            | Error::DirError { .. }
+            | Error::WalkdirError { .. }
             | Error::ParseStringError { .. } => CError(nix::libc::EIO),
             Error::TimeoutError { .. } => CError(nix::libc::ETIMEDOUT),
             Error::UnsupportedUsbRevision { .. } => CError(nix::libc::ENOTSUP),

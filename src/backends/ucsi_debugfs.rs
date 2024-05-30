@@ -4,8 +4,6 @@
 
 //! The UCSI backend
 
-use mockall_double::double;
-
 use std::io::Cursor;
 
 use crate::pd::Message;
@@ -42,9 +40,6 @@ impl NullResponse for Vec<u8> {
 }
 
 mod driver {
-    #[cfg(test)]
-    use mockall::{automock, predicate::*};
-
     use std::fs::File;
     use std::io::Read;
     use std::io::Seek;
@@ -61,7 +56,6 @@ mod driver {
         response_fd: File,
     }
 
-    #[cfg_attr(test, automock)]
     impl Driver {
         pub fn new() -> Result<Self> {
             let command_fd = std::fs::OpenOptions::new()
@@ -109,7 +103,6 @@ mod driver {
     }
 }
 
-#[double]
 use driver::Driver;
 
 pub struct UcsiDebugfsBackend {
@@ -286,8 +279,6 @@ impl OsBackend for UcsiDebugfsBackend {
 
 #[cfg(test)]
 mod tests {
-    use mockall::predicate::eq;
-
     use super::*;
 
     impl From<Driver> for UcsiDebugfsBackend {
@@ -312,27 +303,5 @@ mod tests {
         let expected = 65543u64;
 
         assert_eq!(result, expected);
-    }
-
-    #[test]
-    // Do we write the right command to the command file? Can we parse the response?
-    fn test_execute_get_capability() {
-        let mut mock = Driver::default();
-
-        mock.expect_submit_command()
-            .with(eq(UcsiDebugfsBackend::stringify_command_val(6).unwrap()))
-            .times(1)
-            .returning(|_| Ok(0));
-
-        // TODO: response
-        mock.expect_wait_response()
-            .times(1)
-            .returning(|| Ok(vec![]));
-
-        let mut backend = UcsiDebugfsBackend::from(mock);
-        let response = backend.execute(Command::GetCapability).unwrap();
-
-        let mut br = BitReader::new(Cursor::new(&response[..]));
-        Capability::from_bytes(&mut br).expect("Failed to parse response");
     }
 }
