@@ -14,7 +14,7 @@ use crate::pd::pd3p2::vdo::Ufp as Pd3p2VdoUfp;
 use crate::pd::pd3p2::vdo::Vpd as Pd3p2VdoVpd;
 
 #[cfg(feature = "c_api")]
-pub(crate) mod c_api {
+mod c_api {
     pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoCertStat;
     pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoDfp;
     pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoIdHeader;
@@ -22,9 +22,6 @@ pub(crate) mod c_api {
     pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoUfp;
     pub(crate) use crate::pd::pd3p2::vdo::Pd3p2VdoVpd;
 }
-
-#[cfg(feature = "c_api")]
-pub(crate) use c_api::*;
 
 
 #[derive(Debug, Clone, PartialEq, CApiWrapper)]

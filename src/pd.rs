@@ -27,10 +27,8 @@ use crate::pd::pd3p2::SourceCapabilitiesExtended as Pd3p2SourceCapabilitiesExten
 use crate::pd::pd3p2::SprProgrammableSupplyPdo as Pd3p2SprProgrammableSupplyPdo;
 use crate::pd::pd3p2::VariableSupplyPdo as Pd3p2VariableSupplyPdo;
 
-pub mod pd3p2;
-
 #[cfg(feature = "c_api")]
-pub(crate) mod c_api {
+mod c_api {
     pub(crate) use crate::pd::pd3p2::Pd3p2BatteryCapData;
     pub(crate) use crate::pd::pd3p2::Pd3p2BatteryStatusData;
     pub(crate) use crate::pd::pd3p2::Pd3p2BatterySupplyPdo;
@@ -43,8 +41,7 @@ pub(crate) mod c_api {
     pub(crate) use crate::pd::pd3p2::Pd3p2VariableSupplyPdo;
 }
 
-#[cfg(feature = "c_api")]
-pub(crate) use c_api::*;
+pub mod pd3p2;
 
 #[derive(Debug, Clone, PartialEq, Default, N, CApiWrapper)]
 #[c_api(prefix = "Pd", repr_c = true)]
