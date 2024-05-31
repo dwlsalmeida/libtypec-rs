@@ -7,7 +7,6 @@
 #[cfg(feature = "backtrace")]
 use std::backtrace::Backtrace;
 use std::ffi::CString;
-use std::os::unix::ffi::OsStrExt;
 
 use bitstream_io::BitRead;
 use enumn::N;
@@ -373,11 +372,12 @@ pub enum IdHeaderConnectorType {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, CApiWrapper)]
-#[c_api(prefix = "Pd3p2Vdo", repr_c)]
+#[c_api(prefix = "Pd3p2Vdo", repr_c, manual_from_impl)]
 pub struct IdHeader {
-    /// Null-terminated vendor string.
-    #[c_api(no_prefix)]
-    pub vendor: [u8; 32],
+    // #[c_api(no_prefix)]
+    // pub vendor: [u8; 32],
+    #[c_api(opaque)]
+    pub vendor: String,
     /// USB Communications Capable as USB Host
     pub usb_host_capability: bool,
     /// USB Communications Capable as a USB Device
@@ -396,6 +396,45 @@ pub struct IdHeader {
     pub connector_type: IdHeaderConnectorType,
     /// Value of the Vendor ID assigned to them by USB-IF.
     pub usb_vendor_id: u32,
+}
+
+impl IdHeader {
+    #[no_mangle]
+    /// Gets a null-terminated vendor string.
+    pub(crate) extern "C" fn Pd3p2VdoIdHeader_get_vendor(
+        &self,
+        vendor: &mut [u8; 32],
+    ) -> std::ffi::c_int {
+        let c_str = match CString::new(self.vendor.clone()) {
+            Ok(c) => c,
+            Err(_) => return -nix::libc::EINVAL,
+        };
+
+        let c_str = c_str.to_bytes_with_nul();
+        let len = std::cmp::min(c_str.len(), vendor.len());
+        vendor.copy_from_slice(&c_str[0..len]);
+        0
+    }
+}
+
+#[cfg(feature="c_api")]
+impl From<Pd3p2VdoIdHeader> for IdHeader {
+    fn from(value: Pd3p2VdoIdHeader) -> Self {
+        Self {
+            vendor: *(*value.vendor).clone(),
+            ..Into::into(value)
+        }
+    }
+}
+
+#[cfg(feature="c_api")]
+impl From<IdHeader> for Pd3p2VdoIdHeader {
+    fn from(value: IdHeader) -> Self {
+        Self {
+            vendor: std::mem::ManuallyDrop::new(Box::new(value.vendor.clone())),
+            ..Into::into(value)
+        }
+    }
 }
 
 impl FromBytes for IdHeader {
@@ -437,20 +476,15 @@ impl FromBytes for IdHeader {
         let hwdb = udev::Hwdb::new()?;
         let modalias = format!("usb:v{:04X}*", usb_vendor_id);
 
-        let vendor_str = hwdb
+        let vendor = hwdb
             .query(modalias)
             .next()
             .map_or(std::ffi::OsString::from("Unknown"), |entry| {
                 entry.name().to_os_string()
             });
 
-        let vendor_str = CString::new(vendor_str.as_bytes())?;
-        let mut vendor = [0u8; 32];
-        let bytes = vendor_str.as_bytes_with_nul();
-        vendor[..bytes.len()].copy_from_slice(bytes);
-
         Ok(IdHeader {
-            vendor,
+            vendor: vendor.into_string().unwrap_or("Invalid vendor name".into()),
             usb_host_capability,
             usb_device_capability,
             sop_product_type_ufp,

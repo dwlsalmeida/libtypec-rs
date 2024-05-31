@@ -115,6 +115,7 @@ int c_example_lstypec(unsigned int backend) {
         PdMessageResponseType_DiscoverIdentity, &pd_msg);
 
     if (!ret) {
+      libtypec_rs_destroy_pd_message(&pd_msg);
     } else if (ret != -ENOTSUP) {
       fprintf(stderr,
               "Failed to get the DiscoverIdentity PD message for SOP'\n");

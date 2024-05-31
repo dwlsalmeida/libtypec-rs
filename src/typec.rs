@@ -4,6 +4,8 @@
 
 //! The main interface for the library
 
+#[cfg(feature="c_api")]
+use std::mem::ManuallyDrop;
 use std::str::FromStr;
 
 use crate::backends;
@@ -20,6 +22,7 @@ use crate::ucsi::GetAlternateModesRecipient;
 use crate::ucsi::PdoSourceCapabilitiesType;
 use crate::ucsi::PdoType;
 use crate::BcdWrapper;
+#[cfg(feature="c_api")]
 use crate::CError;
 use crate::Error;
 use crate::OsBackend;
@@ -375,6 +378,13 @@ impl TypecRs {
                 0
             }
             Err(err) => -CError::from(err).0,
+        }
+    }
+
+    #[no_mangle]
+    extern "C" fn libtypec_rs_destroy_pd_message(pd_message: &mut crate::pd::PdMessage) {
+        if let crate::pd::PdMessage::Pd3p2DiscoverIdentityResponse(m) = pd_message {
+            unsafe { ManuallyDrop::drop(&mut m.id_header_vdo.vendor) }
         }
     }
 

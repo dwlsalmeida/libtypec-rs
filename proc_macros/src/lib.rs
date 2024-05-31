@@ -29,6 +29,10 @@ struct FieldOpts {
     #[darling(default)]
     no_prefix: bool,
     rename_type: Option<String>,
+    /// Convert the type into ManuallyDrop<Box<T>>. These types are totally
+    /// opaque to C and must provide a way for C to free them.
+    #[darling(default)]
+    opaque: bool,
 }
 
 /// Derive a C API wrapper for a struct or enum.
@@ -248,13 +252,23 @@ fn prefix_struct_field_types(opts: &WrapperOpts, f: &Field) -> TokenStream2 {
     // Any non-primitive type is prefixed by default.
     if let Some(new_name) = field_opt.rename_type {
         let new_name = syn::Type::from_string(&new_name).unwrap();
-        quote! {#ident: #new_name }
+        if field_opt.opaque {
+            quote! {pub(crate) #ident: std::mem::ManuallyDrop<Box<#new_name>> }
+        } else {
+            quote! {pub(crate) #ident: #new_name }
+        }
     } else if !is_whitelisted_type(&ty_string) && !field_opt.no_prefix {
         let new_ty_ident = format_ident!("{}{}", &opts.prefix, ty_string);
         let new_ty = quote! { #new_ty_ident };
-        quote! { #ident: #new_ty }
+        if field_opt.opaque {
+            quote! { pub(crate) #ident: std::mem::ManuallyDrop<Box<#new_ty>> }
+        } else {
+            quote! { pub(crate) #ident: #new_ty }
+        }
+    } else if field_opt.opaque {
+        quote! { pub(crate) #ident: std::mem::ManuallyDrop<Box<#ty>> }
     } else {
-        quote! { #ident: #ty }
+        quote! { pub(crate) #ident: #ty }
     }
 }
 

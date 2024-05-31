@@ -230,6 +230,10 @@ enum UcsiSinkPathStatus {
   UcsiSinkPathStatus_Ready,
 };
 
+struct IdHeader;
+
+struct String;
+
 /**
  * The main library struct.
  * # Examples
@@ -489,7 +493,7 @@ struct PdVdmHeader {
 };
 
 struct Pd3p2VdoIdHeader {
-  uint8_t vendor[32];
+  struct String *vendor;
   bool usb_host_capability;
   bool usb_device_capability;
   enum Pd3p2VdoSopUfpProductType sop_product_type_ufp;
@@ -627,6 +631,11 @@ struct PdPdo {
 };
 
 /**
+ * Gets a null-terminated vendor string.
+ */
+int Pd3p2VdoIdHeader_get_vendor(const struct IdHeader *self, uint8_t (*vendor)[32]);
+
+/**
  * Initializes the library given a `backend`.
  *
  * # Arguments
@@ -758,6 +767,8 @@ int libtypec_rs_get_pd_message(struct TypecRs *self,
                                enum PdMessageRecipient recipient,
                                enum PdMessageResponseType response_type,
                                struct PdMessage *out_pd_message);
+
+void libtypec_rs_destroy_pd_message(struct PdMessage *pd_message);
 
 /**
  * Gets PDOs from local and partner Policy Managers
